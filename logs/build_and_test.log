@@ -789,3 +789,40 @@ bc4a5ab3dadf082857f02bd49814c9e92d62ba28	refs/heads/main
 === [2026-10-05T20:10:21Z] STAGE: push
 Pushed branch feat/video-report-pipeline (commit 645e651) to https://github.com/Jeremy891102/Capstone-14.git with 'git push -u origin feat/video-report-pipeline' (exit 0, new branch; no force push; main untouched). This log entry is added in a follow-up commit. CI status on GitHub was not observed from this environment (gh CLI is not installed).
 
+=== [2026-10-05T20:27:58Z] STAGE: CI results (GitHub Actions, first observation)
+Queried via the public GitHub API (job logs need auth and could not be downloaded; only job/step conclusions and annotations were readable):
+- run 37368068077 (commit 645e651): no-sdk success; checks (3.10) success (ruff, mypy, pytest steps all success); checks (3.12) cancelled - annotation "The job was not acquired by Runner of type hosted even after multiple attempts" (GitHub infrastructure, never started).
+- run 37368075212 (commit b9cf500, same code + log-only change): no-sdk FAILURE at step "Tests" (exit code 1); checks (3.10) and (3.12) cancelled with the same runner-acquisition annotation.
+Same code passing once and failing once => suspected flaky test.
+
+=== [2026-10-05T20:27:58Z] STAGE: flaky test reproduction
+Ran tests/test_cli_integration.py + tests/test_runner.py 8 times concurrently on the Python 3.10 scratch env without google-genai (mirrors the no-sdk job) to create CPU contention: 4 of 8 failed - 3x test_crash_then_resume_does_not_repeat_successes (resume re-requested one call fewer than expected: a queued call had already executed in the "crashed" session), 1x test_executed_calls_counts_only_attempted.
+Root cause (runner.py): when a worker raised a BaseException (simulated crash / KeyboardInterrupt), the stop event was set only after the main thread noticed the failed future; meanwhile the single pool thread could already pick up and execute the next queued call. Checkpoints stayed correct, but the stopping point depended on scheduling.
+Fix: the worker now sets the stop event itself before re-raising any BaseException from the provider call, so queued calls observe the stop deterministically.
+
+=== [2026-10-05T20:27:58Z] STAGE: flaky test fix verification
+After the fix: the same 2 files run 12 times concurrently -> 12/12 "36 passed"; the full suite run 8 times concurrently on py3.10 without SDK -> 8/8 "147 passed, 1 skipped, 1 deselected".
+
+=== [2026-10-05T20:27:58Z] STAGE: final checks after flaky fix
+$ .venv/bin/ruff check src tests scripts
+All checks passed!
+--- exit code: 0
+
+=== [2026-10-05T20:27:58Z] STAGE: final checks after flaky fix
+$ .venv/bin/ruff format --check src tests scripts
+40 files already formatted
+--- exit code: 0
+
+=== [2026-10-05T20:27:58Z] STAGE: final checks after flaky fix
+$ .venv/bin/mypy
+Success: no issues found in 26 source files
+--- exit code: 0
+
+=== [2026-10-05T20:27:58Z] STAGE: final checks after flaky fix
+$ .venv/bin/python -m pytest -q
+........................................................................ [ 43%]
+........................................................................ [ 86%]
+.......................                                                  [100%]
+167 passed, 1 deselected in 8.25s
+--- exit code: 0
+

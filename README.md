@@ -200,6 +200,6 @@ and in the build log. In short:
   * any live Gemini call (upload, server-side clipping/fps, real usage, billing on timeouts)
   * Windows or network filesystems
   * large-scale performance
-  * CI on GitHub runners, until it is observed running
+  * a fully green CI run on GitHub (partially observed; see the build log)
 
 Passing tests do not make this production-ready.

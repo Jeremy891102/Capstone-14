@@ -373,8 +373,11 @@ see `logs/build_and_test.log`):
   call file).
 * Durability under power loss beyond what `fsync` + `os.replace` provide on the local
   filesystem.
-* The CI workflow on GitHub-hosted runners. It was written but not observed running at the
-  time of this commit.
+* A fully green CI run on GitHub-hosted runners. On the first push, `checks (3.10)` and
+  `no-sdk` passed for commit 645e651. The 3.12 jobs were cancelled because GitHub could not
+  assign a runner. A `no-sdk` failure on the next commit was traced to a timing-dependent
+  test, reproduced locally under load, and fixed (see the build log). The CI result for the
+  fix is not recorded in this file.
 
 ## 10. Extension points (later work)
 

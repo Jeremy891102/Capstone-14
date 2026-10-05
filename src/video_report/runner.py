@@ -311,6 +311,11 @@ class Runner:
                 run.write_call(state)
                 self._notify(state)
                 return
+            except BaseException:
+                # Ctrl-C / crash inside a worker: stop the other workers *now*, before they
+                # pick up queued calls, then let the exception reach the main thread.
+                self._stop.set()
+                raise
 
             received_at = utc_now_iso()
             rel = run.write_response(
