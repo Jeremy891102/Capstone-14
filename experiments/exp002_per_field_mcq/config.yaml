@@ -1,0 +1,44 @@
+# Per-field method: one model call per (report, field).
+# Relative paths are resolved against this file's directory.
+name: exp002_per_field_mcq
+description: One call per field (mock provider).
+
+data:
+  benchmark: ../../benchmarks/mock_mcq_v1
+  report_ids: null        # null = all reports
+  field_ids: null         # null = all fields
+  video_root: null        # see docs/data_contract.md "Video path resolution"
+  require_local_videos: false   # mock provider never opens videos
+
+method:
+  name: per_field
+
+prompt:
+  system: prompts/system.txt
+  user: prompts/user.txt
+  context_keys: [task_name]     # whitelist of report.input.context keys shown to the model
+
+provider:
+  name: mock
+  model: mock-canned-v1
+  mock:
+    responses: null       # null = benchmark manifest's mock_responses_file
+
+generation:
+  temperature: 0.0
+  max_output_tokens: 1024
+  response_format: json
+
+video:
+  fps: null
+  use_time_range: true
+
+execution:
+  concurrency: 4
+  timeout_s: 120
+  max_attempts: 3
+  backoff_initial_s: 2.0
+  backoff_max_s: 60.0
+  backoff_jitter: 0.25
+
+pricing: null             # unknown pricing -> cost reported as unknown, never zero

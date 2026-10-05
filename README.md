@@ -1,262 +1,205 @@
-# Capstone-14
-Build and test an executable, extensible Python inference and evaluation codebase in this repository:
-
-https://github.com/Jeremy891102/Capstone-14.git
-
-Implement the code, run verification, document the results, and push the completed work to a dedicated branch. Do not stop at architecture recommendations.
-
-## Project context
-
-We study egocentric task video → structured reports with multiple fields.
-
-Initially compare:
-- One model call answering the entire report.
-- Separate model calls answering individual fields.
-
-Later, we may introduce grouped questions, type-based routing, OCR, tracking, and other tools. We do not train models.
-
-Another teammate handles dataset preparation, potentially from HD-EPIC, CaptainCook4D, or other datasets. Do not invent dataset-specific conversion logic. Define and document a shared data contract, and use synthetic fixtures until real data arrives.
-
-## Design goals
-
-Keep the project understandable for a three-person team while providing the foundations needed for reliable experiments.
-
-Consult current official documentation and relevant source code from Inspect AI and lmms-eval. Explain which design patterns you adopt. Do not claim our custom report schema is an industry standard.
-
-Avoid unnecessary databases, plugin registries, distributed schedulers, or agent frameworks.
-
-Use the existing repository root as the project root; do not create a redundant nested project directory.
-
-Suggested structure:
-
-src/video_report/
-├── datasets/
-│   └── base.py
-├── benchmarks/
-│   └── schema.py
-├── providers/
-│   ├── base.py
-│   ├── mock.py
-│   └── gemini.py
-├── methods/
-│   ├── whole_report.py
-│   └── per_field.py
-├── evaluation/
-│   ├── parser.py
-│   ├── scorers.py
-│   └── aggregate.py
-└── runner.py
-
-experiments/
-├── exp001_whole_mcq/
-│   ├── config.yaml
-│   └── prompts/
-└── exp002_per_field_mcq/
-    ├── config.yaml
-    └── prompts/
-
-benchmarks/mock_mcq_v1/
-├── manifest.json
-├── reports.jsonl
-├── ground_truth.jsonl
-└── mock_responses.jsonl
-
-scripts/
-├── run_experiment.py
-└── evaluate.py
-
-tests/
-docs/data_contract.md
-docs/design.md
-logs/build_and_test.log
-runs/
-pyproject.toml
-.env.example
-.gitignore
-README.md
-
-Adjust this structure when justified, but explain changes. Do not create misleading placeholder converters.
-
-## Module responsibilities
-
-Use explicit, typed interfaces:
-
-- Dataset reader: load prepared reports and validate model-facing data.
-- Method: produce a call plan containing stable call IDs and selected field IDs.
-- Prompt builder: render model input using the experiment’s prompt.
-- Provider: perform one generation attempt and return raw output and available usage.
-- Runner: execute calls, enforce concurrency and retry policies, persist progress, and resume.
-- Evaluator: parse saved outputs, compare with targets, and aggregate scores.
-
-Keep retry and scheduling logic in one place. Avoid duplicate retry layers in the SDK and runner.
-
-## Data contract
-
-Follow common evaluation naming conventions such as `id`, `input`, `choices`, `target`, and `metadata`, with a small custom report wrapper.
-
-Support:
-- Stable report and field IDs.
-- One or more video references.
-- Optional time ranges, with explicit units and coordinate semantics.
-- Field question, answer type, and ordered choices.
-- Source dataset and original annotation references.
-
-Separate model-facing reports from ground truth and answer evidence. Methods, prompt builders, and providers must not receive targets or privileged annotation evidence.
-
-Do not automatically send arbitrary metadata to the model. Whitelist any model-facing context.
-
-Inference must work without ground truth. Evaluation requires valid targets for the selected fields.
-
-Version one supports single-choice questions only. Explicitly reject unsupported types instead of silently mis-scoring them.
-
-Provide one synthetic report with three fields and independent mock responses. The mock provider must not read ground truth to produce answers.
-
-Document path resolution so teammates can use local videos without editing source code.
-
-## Experiment isolation and reproducibility
-
-Each experiment owns its configuration and prompts.
-
-At run creation, freeze:
-- Resolved configuration.
-- Prompt contents.
-- Selected report data and its fingerprint.
-- Code revision and dirty-worktree status.
-- Provider, model identifier, and generation settings.
-
-Read frozen inputs during execution. Editing the original prompt or report file must not change a running experiment.
-
-Use independent run directories, temporary files, and state. Never rely on mutable module-level experiment configuration.
-
-Resume must verify compatibility and reject mismatched inputs or settings.
-
-Do not introduce shared inference caches in version one.
-
-## Execution and persistence
-
-Implement:
-- Configurable concurrency limits.
-- Provider request timeouts and finite retry attempts.
-- Classification of retryable versus permanent failures.
-- Per-call checkpoints, including for per-field inference.
-- Atomic persistence where appropriate.
-- One active writer per run, with documented crash-safe lock behavior.
-- Explicit run and call states.
-
-Save raw responses before parsing. Preserve every recorded attempt and avoid duplicate final predictions during resume.
-
-Distinguish:
-- Valid but incorrect answers.
-- Missing or invalid model output.
-- Provider execution failures.
-- Interrupted calls whose remote outcome is unknown.
-
-Do not retry model format errors as ordinary network failures. Any output-repair strategy must be a separately configured method.
-
-Do not promise exactly-once API execution: a crash after remote success but before local persistence may cause a duplicate call on resume.
-
-API credentials must come from environment variables. Redact secrets and avoid writing signed URLs or credential-bearing exception contents to logs.
-
-## Gemini integration
-
-Use current official Google SDK documentation. Configure the model identifier rather than hardcoding a presumed latest model.
-
-Mock execution must work without the Gemini SDK or API credentials.
-
-Implement a minimal video inference path and document supported inputs. If clipping, FPS control, or another feature is not implemented, explicitly reject or document it rather than silently ignoring configuration.
-
-Do not run paid live calls unless credentials and suitable video data are available and the execution is authorized. Clearly distinguish mocked SDK tests from actual live validation.
-
-## Evaluation
-
-Allow offline evaluation without new inference calls.
-
-Store each evaluation separately with its scoring version/configuration and ground-truth fingerprint. Never overwrite original inference evidence.
-
-For MCQ evaluation:
-- Missing or invalid answers count as incorrect in field accuracy.
-- Do not remove difficult or malformed answers from the denominator.
-- Report execution completion and provider failures separately.
-- Report field accuracy, report completeness, and all-fields-correct rate.
-- For partially executed runs, label metrics provisional and state the denominator.
-- Handle entirely failed runs without reporting misleading perfect or zero-cost results.
-
-Track usage and cost per completed report, including additional attempts when known. Represent missing usage or pricing as unknown. Do not estimate unavailable usage as zero.
-
-If a timed-out request might have been billed, state that observed usage may be a lower bound.
-
-## Testing
-
-Use pytest. Default tests must require neither network access nor API keys.
-
-Unit tests:
-- Duplicate IDs, invalid targets/choices, invalid time ranges, unsupported types.
-- Prompt construction includes the intended fields and preserves choice mappings.
-- Targets and annotation evidence never enter model requests.
-- Valid JSON, missing/extra fields, invalid options, duplicate keys, empty responses.
-- Scoring against independently hand-calculated expected values.
-- Whole-report and per-field call planning.
-- Out-of-order completions matched by IDs.
-- Retry limits and permanent-error handling.
-- Immutable run snapshots and resume compatibility.
-
-Integration tests:
-- Complete mock inference followed by offline scoring.
-- Concurrent experiments with distinct prompts and outputs.
-- Two CLI processes running without cross-run contamination.
-- A second writer rejected for the same run.
-- Mid-run source-prompt edits do not affect frozen requests.
-- Injected interruption followed by resume.
-- Persisted successful calls are not repeated.
-- Attempt records and final predictions remain consistent.
-- All-failure and partial-run accounting.
-
-Use prompt snapshots where useful. Test failure behavior, not just happy paths.
-
-Inject clocks, sleeps, or scripted provider failures when needed so tests are deterministic and fast.
-
-Mark live API tests separately and exclude them by default. Do not assert that a real model always answers correctly as a software-test requirement.
-
-Add a lightweight CI workflow for linting, type checking, and offline tests. It must not require API secrets.
-
-## Build and test log
-
-Produce and commit `logs/build_and_test.log`.
-
-Record observable actions and results:
-- UTC timestamp and stage.
-- Files created or modified and their purpose.
-- Exact verification commands.
-- Actual output, exit codes, and test summaries.
-- Failures, fixes, and rerun results.
-- Validated capabilities and remaining limitations.
-
-Preserve failed test output. Do not fabricate successful runs, coverage, or checks. Do not include internal reasoning or secrets.
-
-## Repository workflow
-
-1. Inspect the repository, existing files, and applicable AGENTS.md instructions.
-2. Create a dedicated branch, such as `feat/video-report-pipeline`.
-3. Preserve unrelated work and repository history.
-4. Implement incrementally:
-   schema → parser/scorer → mock flow → isolation/resume → Gemini interface.
-5. Run tests and relevant checks, then perform a final code review.
-6. Commit code, documentation, synthetic fixtures, CI configuration, and the build/test log.
-7. Exclude credentials, real videos, downloaded datasets, and runtime outputs from Git.
-8. Push the branch to the supplied repository; do not force push or merge into the default branch.
-
-If authentication or network access blocks pushing, finish all local work and report the exact blocker and remaining command. Never claim a push succeeded without verification.
-
-## Deliverables
-
-- Executable codebase.
-- Data contract and synthetic examples.
-- README covering installation, mock runs, parallel execution, resume, offline evaluation, and teammate-data integration.
-- Design notes explaining adopted patterns and limitations.
-- Build/test log.
-- Commit hash and pushed branch link, if successful.
-- Concise final report of actual test results and unvalidated features.
-
-Passing tests does not alone establish production readiness. State precisely which reliability properties were verified.
-
-The practical goal is that once our teammate supplies prepared data, we can adapt the reader or map the fields, validate the data, and begin a real smoke test without restructuring the entire project.
+# Capstone-14: video → structured report, inference & evaluation
+
+This is a small, testable harness for experiments that turn **egocentric task videos** into
+**structured reports**: several single-choice fields per video. The first comparison is
+**one model call for the whole report** against **one call per field**.
+
+* Mock provider: fully offline, no SDK or API key needed.
+* Gemini provider: minimal video path through the official `google-genai` SDK. **Not yet
+  validated against the live API** (see [Status](#status)).
+* Each run is frozen, resumable, and evaluated offline in a separate step.
+
+Docs:
+* [docs/data_contract.md](docs/data_contract.md): input format for prepared data. **Start
+  here if you prepare datasets.**
+* [docs/design.md](docs/design.md): architecture, the patterns borrowed from Inspect AI and
+  lmms-eval, and what is and isn't verified.
+* [docs/project_brief.md](docs/project_brief.md): the original task brief.
+* [logs/build_and_test.log](logs/build_and_test.log): the commands actually run and their
+  output.
+
+## Install
+
+Python ≥ 3.10, on macOS or Linux (run locking uses `fcntl`).
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e '.[dev]'            # mock runs + tests
+pip install -e '.[dev,gemini]'     # add the Gemini SDK for live runs
+```
+
+## Quick start (mock, offline)
+
+```bash
+python scripts/validate_data.py --benchmark benchmarks/mock_mcq_v1
+
+python scripts/run_experiment.py run --config experiments/exp001_whole_mcq/config.yaml
+python scripts/run_experiment.py run --config experiments/exp002_per_field_mcq/config.yaml
+
+python scripts/evaluate.py --run runs/<run_id> \
+    --ground-truth benchmarks/mock_mcq_v1/ground_truth.jsonl
+```
+
+Expected results on the synthetic report (worked out by hand; the mock answers are written
+independently of the ground truth):
+
+| experiment | calls | field accuracy | report completeness | all fields correct |
+|---|---|---|---|---|
+| exp001 whole report | 1 | 2/3 | 1/1 | 0/1 |
+| exp002 per field | 3 | 1/3 (one response is not JSON → `invalid_output`) | 0/1 | 0/1 |
+
+Cost is `unknown` because the mock reports no usage. It is never shown as 0.
+
+`video-report …` is the same CLI, installed as a console script
+(`video-report run|resume|status|evaluate|validate-data`).
+
+## Experiments
+
+Each experiment directory owns its config and prompts:
+
+```
+experiments/exp001_whole_mcq/
+├── config.yaml        # data selection, method, prompt files, provider/model, generation, video, execution, pricing
+└── prompts/{system,user}.txt
+```
+
+Relative paths in `config.yaml` resolve against the config file's own directory. Prompt
+templates use `$questions`, `$answer_format`, `$field_ids`, `$num_fields` and `$context`; an
+unknown placeholder is an error. Only the `input.context` keys listed in
+`prompt.context_keys` reach the model.
+
+To add an experiment, copy a directory, rename `name:`, and edit it. Never edit an
+experiment's prompts to "fix" a run that already exists. Start a new run instead; the old one
+keeps its frozen copy.
+
+## Runs, parallel execution, resume
+
+```bash
+python scripts/run_experiment.py run --config <config.yaml> [--run-id ID] [--runs-dir runs] \
+    [--video-root DIR] [--concurrency N] [--max-attempts N] [--timeout-s S]
+python scripts/run_experiment.py status runs/<run_id>
+python scripts/run_experiment.py resume runs/<run_id> [--config <config.yaml>] [--retry-failed] \
+    [--allow-code-change]
+```
+
+* **Freezing.** When a run is created, the resolved config, prompt texts, selected reports,
+  call plan, fully rendered requests, code revision (commit, dirty flag, diff hash) and
+  package versions are written to `runs/<id>/snapshot/` and fingerprinted. Execution reads
+  only this snapshot.
+* **Parallel.** `execution.concurrency` caps in-flight calls within a run. Separate runs, even
+  of the same experiment, are independent processes with separate directories. Run them in
+  separate terminals or with `&`.
+* **Checkpoints.** Each call has its own checkpoint file, rewritten atomically. Raw responses
+  are saved before anything parses them, and every attempt is recorded.
+* **Resume** continues pending calls and calls that were in flight during a crash.
+  Successfully completed calls are never re-sent. `--retry-failed` also re-runs failed calls.
+  Resume refuses to start if the frozen snapshot was modified, the package source code
+  changed (a hash of all `video_report` `.py` files, including untracked ones; override with
+  `--allow-code-change`), the provider/model/SDK changed, or, when `--config` is given, the
+  current sources no longer match the frozen ones. Only `--concurrency`,
+  `--max-attempts` and `--timeout-s` may differ.
+* **One writer.** A second `run`/`resume` on the same run directory exits with code 5. A
+  crashed writer never leaves a stale lock, because the OS releases `flock` on process exit.
+* **Exactly-once is not guaranteed.** If the process dies after the provider has answered but
+  before the response is saved, resume sends that call again. The first attempt is recorded
+  as `interrupted` with an unknown outcome.
+
+Exit codes: `0` completed, `2` invalid input / incompatible resume, `3` finished with failed
+calls, `4` interrupted (resume to continue), `5` locked by another writer.
+
+Ctrl-C and SIGTERM stop gracefully: in-flight attempts finish, queued calls are skipped, and
+the run is marked `interrupted`. The writer lock is held until all workers are done. For
+Gemini, one in-flight attempt can take up to upload + file processing + generation time.
+
+## Offline evaluation
+
+```bash
+python scripts/evaluate.py --run runs/<run_id> --ground-truth <ground_truth.jsonl> \
+    [--allow-markdown-fence] [--pricing pricing.json]
+```
+
+* No model calls are made. Results go to a new directory, `runs/<id>/evaluations/<eval_id>/`
+  (`metrics.json`, `field_scores.jsonl`, `call_parses.jsonl`, `evaluation.json` with
+  parser/scorer versions and the ground-truth sha256). Inference files are never modified.
+* Field accuracy counts every selected field. Missing, invalid or not-executed answers count
+  as incorrect.
+* Also reported: report completeness, all-fields-correct rate, execution completion, provider
+  failures by kind, and usage/cost with a status of `complete`, `lower_bound` or `unknown`.
+* Partially executed runs are marked `provisional`, and the reason states the denominator.
+
+`--pricing` takes a JSON file like
+`{"input_per_million": 0.3, "output_per_million": 2.5, "source": "<pricing URL>, checked YYYY-MM-DD"}`.
+Those numbers are only placeholders; take real prices from the provider's pricing page.
+
+## Using teammate data
+
+1. Prepare a benchmark directory that follows [docs/data_contract.md](docs/data_contract.md),
+   kept outside Git.
+2. Validate it: `python scripts/validate_data.py --benchmark /data/bench --check-videos --video-root /data/videos`
+3. Point videos at your local copy without editing code. Either
+   `export VIDEO_REPORT_VIDEO_ROOT=/data/videos` or pass `--video-root`. Precedence:
+   CLI > env > config `data.video_root` > manifest `video_root` > benchmark directory.
+4. Copy `experiments/exp001_whole_mcq`, set `data.benchmark: /data/bench`, and optionally
+   restrict `data.report_ids` / `data.field_ids` for a small first run.
+
+## Gemini (live)
+
+```bash
+pip install -e '.[gemini]'
+export GEMINI_API_KEY=...            # only read from the environment
+# edit experiments/exp003_whole_gemini_smoke/config.yaml:
+#   provider.model: <a model id you checked in the current Gemini docs>
+#   data.benchmark: <prepared data with real local videos>
+python scripts/run_experiment.py run --config experiments/exp003_whole_gemini_smoke/config.yaml
+```
+
+What the adapter supports:
+
+* Local video files, uploaded with the Files API.
+* Optional clip offsets taken from `time_range`.
+* Optional `video.fps`.
+* `response_format: json`.
+
+What it rejects at run creation: remote URIs and unknown MIME types.
+
+SDK retries are disabled; the runner is the only retry layer. **Live calls cost money. Run
+them only when authorized.** An opt-in live smoke test:
+
+```bash
+GEMINI_API_KEY=... LIVE_GEMINI_MODEL=<model id> LIVE_VIDEO_PATH=/path/clip.mp4 pytest -m live
+```
+
+## Development
+
+```bash
+pytest -q                      # offline suite; `live` tests are excluded by default
+ruff check src tests scripts && ruff format --check src tests scripts
+mypy                           # strict, on src/
+```
+
+CI (`.github/workflows/ci.yml`) runs lint, type checks and the offline tests on Python 3.10
+and 3.12. A separate job runs without the Gemini SDK installed. No secrets are used.
+
+Never committed: `.env`, credentials, real videos, downloaded datasets and `runs/*`.
+
+## Status
+
+What is verified, and how, is detailed in [docs/design.md §9](docs/design.md#9-reliability-properties-verified-vs-not)
+and in the build log. In short:
+
+* **Verified offline:**
+  * mock end-to-end runs and evaluation
+  * leakage guards
+  * retries and failure classification
+  * crash/resume, including a real process kill
+  * single-writer locking across processes
+  * snapshot immutability
+  * concurrent CLI runs
+  * Gemini request construction against a fake client
+* **Not verified:**
+  * any live Gemini call (upload, server-side clipping/fps, real usage, billing on timeouts)
+  * Windows or network filesystems
+  * large-scale performance
+  * CI on GitHub runners, until it is observed running
+
+Passing tests do not make this production-ready.

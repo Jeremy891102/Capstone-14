@@ -1,0 +1,51 @@
+# Live Gemini smoke-test template (whole-report). NOT run in tests or CI.
+# Before use:
+#   1. pip install -e '.[gemini]'  and  export GEMINI_API_KEY=...
+#   2. set provider.model to a model id you have checked in the current Gemini docs
+#   3. point data.benchmark at prepared data whose videos exist locally (or pass --video-root)
+# Paid calls: only run when authorized.
+name: exp003_whole_gemini_smoke
+description: Minimal live Gemini video inference smoke test (whole-report).
+
+data:
+  benchmark: ../../benchmarks/mock_mcq_v1
+  report_ids: null
+  field_ids: null
+  video_root: null
+  require_local_videos: true    # fail at run creation if a video file is missing
+
+method:
+  name: whole_report
+
+prompt:
+  system: prompts/system.txt
+  user: prompts/user.txt
+  context_keys: [task_name]
+
+provider:
+  name: gemini
+  model: SET-ME            # deliberately not defaulted; run creation rejects this placeholder
+  gemini:
+    api_key_env: GEMINI_API_KEY
+    file_poll_interval_s: 2.0
+    file_active_timeout_s: 300
+    delete_uploaded_files: true
+
+generation:
+  temperature: 0.0
+  max_output_tokens: 1024
+  response_format: json
+
+video:
+  fps: null                # null = provider default; (0, 24] sends VideoMetadata.fps
+  use_time_range: true     # report time ranges -> VideoMetadata start/end offsets
+
+execution:
+  concurrency: 2
+  timeout_s: 300
+  max_attempts: 3
+  backoff_initial_s: 5.0
+  backoff_max_s: 60.0
+  backoff_jitter: 0.25
+
+pricing: null              # fill from the official pricing page (with date) to get cost
