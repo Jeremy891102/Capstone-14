@@ -1,0 +1,50 @@
+# Live Gemini smoke test on HD-EPIC (whole-report). NOT run in tests or CI.
+# Before use: pip install -e '.[gemini]'  and  export GEMINI_API_KEY=<Google AI Studio key>
+# Questions use original-video timestamps; whether Gemini keeps that timeline after
+# VideoMetadata clipping is unverified (set video.use_time_range: false to send the full video).
+# Paid calls: only run when authorized.
+name: exp004_hd_epic_smoke
+description: HD-EPIC manual smoke set (3 videos, 11 MCQ), whole-report Gemini.
+
+data:
+  benchmark: ../../data/hd_epic_smoke_v1
+  report_ids: null
+  field_ids: null
+  video_root: ../../data/HD-EPIC/Videos
+  require_local_videos: true    # fail at run creation if a video file is missing
+
+method:
+  name: whole_report
+
+prompt:
+  system: prompts/system.txt
+  user: prompts/user.txt
+  context_keys: [task_name]
+
+provider:
+  name: gemini
+  model: gemini-3.5-flash-lite   # checked against ai.google.dev/gemini-api/docs/models (stable)
+  gemini:
+    api_key_env: GEMINI_API_KEY
+    file_poll_interval_s: 2.0
+    file_active_timeout_s: 300
+    delete_uploaded_files: true
+
+generation:
+  temperature: 0.0
+  max_output_tokens: 1024
+  response_format: json
+
+video:
+  fps: null                # null = provider default; (0, 24] sends VideoMetadata.fps
+  use_time_range: true     # report time ranges -> VideoMetadata start/end offsets
+
+execution:
+  concurrency: 2
+  timeout_s: 300
+  max_attempts: 3
+  backoff_initial_s: 5.0
+  backoff_max_s: 60.0
+  backoff_jitter: 0.25
+
+pricing: null              # fill from the official pricing page (with date) to get cost
