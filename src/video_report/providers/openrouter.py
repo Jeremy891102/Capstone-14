@@ -183,28 +183,103 @@ class OpenRouterProvider:
         try:
             data = resp.json()
         except ValueError:
-            data = {}
+            data = None
+
+        # HTTP failures keep their status classification, even with non-JSON bodies.
+        # A 200 response must pass envelope validation before it can become a success.
         err = data.get("error") if isinstance(data, dict) else None
-        if status != 200 or (err and not data.get("choices")):
-            # OpenRouter may also report upstream failures as HTTP 200 with an "error" object.
-            code = status if status != 200 else (err or {}).get("code", 502)
-            msg = redact(f"{status}: {err or resp.text[:300]}", (self._api_key,))
+        if status != 200 or err is not None:
+            code = status
+            if status == 200:
+                if not isinstance(err, dict):
+                    raise self._invalid_response("error must be an object")
+                code = err.get("code", 502)
+            if type(code) is not int:
+                raise self._invalid_response("error code must be an integer")
+            # Do not persist arbitrary gateway bodies, which can echo input or credentials.
             cls = RetryableProviderError if code in _RETRYABLE_STATUS else PermanentProviderError
-            return_err = cls(f"http_{code}", msg, status_code=status)
-            raise return_err
-        choice = (data.get("choices") or [{}])[0]
-        u = data.get("usage") or {}
-        usage = Usage(
-            input_tokens=u.get("prompt_tokens"),
-            output_tokens=u.get("completion_tokens"),
-            reasoning_tokens=(u.get("completion_tokens_details") or {}).get("reasoning_tokens"),
-            cached_input_tokens=(u.get("prompt_tokens_details") or {}).get("cached_tokens"),
-            total_tokens=u.get("total_tokens"),
-        )
+            raise cls(
+                f"http_{code}",
+                f"OpenRouter returned error {code} (HTTP {status})",
+                status_code=status,
+                outcome_unknown=status == 200,
+            )
+
+        try:
+            if not isinstance(data, dict):
+                raise ValueError("response must be a JSON object")
+            choices = data.get("choices")
+            if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+                raise ValueError("choices must be a nonempty array of objects")
+            choice = choices[0]
+            message = choice.get("message")
+            if not isinstance(message, dict):
+                raise ValueError("choice.message must be an object")
+            if "content" not in message and not isinstance(message.get("refusal"), str):
+                raise ValueError("message must contain content or an explicit refusal")
+            text = message.get("content")
+            if text is not None and not isinstance(text, str):
+                raise ValueError("message.content must be a string or null")
+            # This validates the API envelope, NOT the model's answer format. Empty, null,
+            # or non-JSON model text still reaches the existing offline parser/scorer.
+            usage = self._usage(data.get("usage"))
+            for value in (choice.get("finish_reason"), data.get("model"), data.get("id")):
+                if value is not None and not isinstance(value, str):
+                    raise ValueError("response identifiers must be strings or null")
+        except ValueError as exc:
+            raise self._invalid_response(str(exc)) from None
         return ProviderResponse(
-            text=(choice.get("message") or {}).get("content") or None,
-            usage=usage if u else None,
+            text=text or None,
+            usage=usage,
             finish_reason=choice.get("finish_reason"),
             model_version=data.get("model"),
             response_id=data.get("id"),
+        )
+
+    @staticmethod
+    def _invalid_response(detail: str) -> PermanentProviderError:
+        # The remote call may have succeeded and been billed. Do not automatically resend
+        # a malformed success response; make the failed attempt visible in checkpoints.
+        return PermanentProviderError(
+            "invalid_response", detail, status_code=200, outcome_unknown=True
+        )
+
+    @staticmethod
+    def _usage(raw: Any) -> Usage | None:
+        if raw is None or raw == {}:
+            return None
+        if not isinstance(raw, dict):
+            raise ValueError("usage must be an object or null")
+
+        def tokens(obj: dict[str, Any], key: str) -> int | None:
+            value = obj.get(key)
+            if value is not None and (type(value) is not int or value < 0):
+                raise ValueError(f"usage.{key} must be a nonnegative integer or null")
+            return value
+
+        details = raw.get("completion_tokens_details")
+        prompt_details = raw.get("prompt_tokens_details")
+        if details is None:
+            details = {}
+        if prompt_details is None:
+            prompt_details = {}
+        if not isinstance(details, dict) or not isinstance(prompt_details, dict):
+            raise ValueError("usage token details must be objects or null")
+        completion = tokens(raw, "completion_tokens")
+        reasoning = tokens(details, "reasoning_tokens")
+        output = completion
+        if completion is not None and reasoning is not None:
+            if reasoning > completion:
+                raise ValueError("reasoning_tokens exceeds completion_tokens")
+            # OpenRouter includes reasoning in completion_tokens. The evaluator adds the
+            # two fields, so store only non-reasoning output here to charge the total once.
+            output = completion - reasoning
+        # If the reasoning breakdown is absent, preserve the reported completion total;
+        # do not fabricate a zero reasoning count. Missing completion remains unknown.
+        return Usage(
+            input_tokens=tokens(raw, "prompt_tokens"),
+            output_tokens=output,
+            reasoning_tokens=reasoning,
+            cached_input_tokens=tokens(prompt_details, "cached_tokens"),
+            total_tokens=tokens(raw, "total_tokens"),
         )

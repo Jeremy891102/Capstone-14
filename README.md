@@ -10,6 +10,8 @@ This is a small, testable harness for experiments that turn **egocentric task vi
 * Each run is frozen, resumable, and evaluated offline in a separate step.
 
 Docs:
+* [docs/openrouter_response_fixes.md](docs/openrouter_response_fixes.md): why OpenRouter token
+  accounting and response validation were corrected, and how the fixes are verified.
 * [docs/data_contract.md](docs/data_contract.md): input format for prepared data. **Start
   here if you prepare datasets.**
 * [docs/design.md](docs/design.md): architecture, the patterns borrowed from Inspect AI and
