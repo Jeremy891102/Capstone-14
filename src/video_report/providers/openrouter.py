@@ -48,7 +48,7 @@ def validate_request(request: ModelRequest) -> None:
 def _ffmpeg() -> str:
     import imageio_ffmpeg
 
-    return imageio_ffmpeg.get_ffmpeg_exe()
+    return str(imageio_ffmpeg.get_ffmpeg_exe())
 
 
 class OpenRouterProvider:
