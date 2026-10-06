@@ -174,6 +174,8 @@ class Provider(Protocol):
 _REDACTIONS = [
     # Google API keys
     (re.compile(r"AIza[0-9A-Za-z_\-]{20,}"), "[REDACTED_API_KEY]"),
+    # OpenRouter API keys
+    (re.compile(r"sk-or-[0-9A-Za-z_\-]{20,}"), "[REDACTED_API_KEY]"),
     # key=... / api_key=... / token=... style parameters and headers
     (
         re.compile(
