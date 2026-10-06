@@ -1,0 +1,64 @@
+Offline regression verification; no model API calls or credit usage.
+Initial regression run BEFORE fixes: 13 failed, 16 passed in 0.30s.
+Failures reproduced double-counted reasoning and malformed-success envelope handling.
+After initial implementation: 29 passed in 0.25s; additional usage and checkpoint tests added below.
+
+=== 2026-10-06T22:27:59.130649+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/python -m pytest tests/test_openrouter_adapter.py -q -p no:cacheprovider
+......................................                                   [100%]
+38 passed in 0.35s
+
+Exit code: 0
+
+=== 2026-10-06T22:27:59.765236+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff check src tests scripts
+All checks passed!
+
+Exit code: 0
+
+=== 2026-10-06T22:27:59.799160+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff format --check src tests scripts
+44 files already formatted
+
+Exit code: 0
+
+=== 2026-10-06T22:27:59.808909+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/mypy --cache-dir /Users/jeremy/Documents/Codex/2026-10-06/git/work/mypy-openrouter-fix
+src/video_report/providers/openrouter.py:194: error: Item "None" of "Any | None" has no attribute "get"  [union-attr]
+Found 1 error in 1 file (checked 27 source files)
+
+Exit code: 1
+
+Mypy repair: explicitly narrow embedded error objects before reading code.
+
+=== 2026-10-06T22:28:09.715580+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff check src tests scripts
+All checks passed!
+
+Exit code: 0
+
+=== 2026-10-06T22:28:09.731679+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff format --check src tests scripts
+44 files already formatted
+
+Exit code: 0
+
+=== 2026-10-06T22:28:09.742190+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/mypy --cache-dir /Users/jeremy/Documents/Codex/2026-10-06/git/work/mypy-openrouter-fix
+Success: no issues found in 27 source files
+
+Exit code: 0
+
+=== 2026-10-06T22:28:09.925591+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/python -m pytest -q -rs -p no:cacheprovider
+........................................................................ [ 35%]
+........................................................................ [ 70%]
+.............................................................            [100%]
+205 passed, 1 deselected in 8.34s
+
+Exit code: 0
+
+=== 2026-10-06T22:28:18.499853+00:00 ===
+$ git diff --check
+
+Exit code: 0
