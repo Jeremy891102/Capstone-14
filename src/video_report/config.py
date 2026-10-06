@@ -61,11 +61,19 @@ class GeminiProviderConfig(_Strict):
     delete_uploaded_files: bool = True
 
 
+class OpenRouterProviderConfig(_Strict):
+    api_key_env: str = "OPENROUTER_API_KEY"
+    base_url: str = "https://openrouter.ai/api/v1"
+    clip_height: int = Field(default=480, gt=0)  # clips are downscaled to this height
+    clip_fps: float = Field(default=2.0, gt=0)  # used when video.fps is null
+
+
 class ProviderConfig(_Strict):
-    name: Literal["mock", "gemini"]
+    name: Literal["mock", "gemini", "openrouter"]
     model: str = Field(min_length=1)  # always explicit; never a presumed "latest" default
     mock: MockProviderConfig = Field(default_factory=MockProviderConfig)
     gemini: GeminiProviderConfig = Field(default_factory=GeminiProviderConfig)
+    openrouter: OpenRouterProviderConfig = Field(default_factory=OpenRouterProviderConfig)
 
 
 class GenerationConfig(_Strict):
@@ -119,7 +127,7 @@ class ExperimentConfig(_Strict):
     def _check(self) -> ExperimentConfig:
         if self.provider.model.strip().upper().startswith("SET-ME"):
             raise ValueError("provider.model is the SET-ME placeholder; set a real model id")
-        if self.provider.name == "gemini" and self.provider.mock != MockProviderConfig():
+        if self.provider.name != "mock" and self.provider.mock != MockProviderConfig():
             raise ValueError("provider.mock settings are only valid with provider.name: mock")
         return self
 

@@ -17,14 +17,17 @@ PICKS = {
 }
 def ts(t): h, m, s = t.split(":"); return f"{int(h)}:{m}:{s}"
 def sec(t): h, m, s = t.split(":"); return int(h)*3600 + int(m)*60 + float(s)
+def rel(t, a):  # original-timeline timestamp -> clip-relative H:MM:SS.mmm (clips start at 0 s)
+    x = sec(t) - a; return f"{int(x//3600)}:{int(x%3600//60):02d}:{x%60:06.3f}"
 reports, gt = [], []
 for rid, (vid, a, b, task, picks) in PICKS.items():
     fields = []
     for f, qid in picks:
         q = json.load(open(V / f"{f}.json"))[qid]; inp = q["inputs"]["video 1"]
-        text = re.sub(r"<TIME (\S+) video 1>", lambda m: m[1], q["question"]).replace("in video 1", "in this video")
+        text = re.sub(r"<TIME (\S+) video 1>", lambda m: rel(m[1], a), q["question"]).replace("in video 1", "in this video")
+        text = text.replace("in this video", "in this clip")
         if "start_time" in inp and not re.search(r"\d\d:\d\d:\d\d", text):
-            text += f" (segment: {inp['start_time']} - {inp['end_time']} of the video timeline)"
+            text += f" (segment: {rel(inp['start_time'], a)} - {rel(inp['end_time'], a)} of this clip)"
         # sanity: question segment must fall inside the report window
         if "start_time" in inp: assert a <= sec(inp["start_time"]) and sec(inp["end_time"]) <= b, qid
         fid = f"{CAT[f]}_{qid.rsplit('_',1)[1]}"
@@ -44,4 +47,4 @@ w("reports.jsonl", reports); w("ground_truth.jsonl", gt)
 (OUT / "manifest.json").write_text(json.dumps({"schema_version": "video_report.v1", "benchmark_id": "hd_epic_smoke_v1",
   "description": "Manual HD-EPIC smoke set: 3 videos, 11 single-choice questions.", "reports_file": "reports.jsonl",
   "ground_truth_file": "ground_truth.jsonl", "mock_responses_file": None, "video_root": None,
-  "source_datasets": ["hd-epic"], "notes": "Question timestamps are on the original video timeline."}, indent=2) + "\n")
+  "source_datasets": ["hd-epic"], "notes": "Question timestamps are relative to the start of each clip (= time_range.start of the report)."}, indent=2) + "\n")
