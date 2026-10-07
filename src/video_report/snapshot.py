@@ -144,7 +144,7 @@ def build_snapshot(
             fps=cfg.video.fps,
         )
         try:
-            validate_request_for(cfg.provider.name, req)
+            validate_request_for(cfg.provider.name, req, cfg.provider)
         except ValueError as exc:
             raise DataValidationError(str(exc)) from exc
         requests.append(req)

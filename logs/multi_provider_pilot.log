@@ -1,0 +1,37 @@
+OpenAI + Vertex Express adapters and localization pilot. All tests offline; no API credit usage.
+Development notes: sampling random independent permutations was infeasible under every-question position constraints; replaced with seeded counterbalanced cyclic orders.
+First direct-adapter pipeline tests: 2 failed, 23 passed; test indexed a dict as a list after successful inference/evaluation; corrected test access.
+Initial lint/type checks found formatting and generator narrowing issues; repaired before final checks.
+
+=== 2026-10-07T15:43:04.602896+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff check src tests scripts
+All checks passed!
+
+Exit code: 0
+
+=== 2026-10-07T15:43:04.615357+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/ruff format --check src tests scripts
+53 files already formatted
+
+Exit code: 0
+
+=== 2026-10-07T15:43:04.624364+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/mypy --cache-dir /Users/jeremy/Documents/Codex/2026-10-06/git/work/mypy-multi-provider
+Success: no issues found in 32 source files
+
+Exit code: 0
+
+=== 2026-10-07T15:43:04.894282+00:00 ===
+$ /Users/jeremy/Documents/Codex/2026-10-06/git/work/capstone-test-env/bin/python -m pytest -q -rs -p no:cacheprovider
+........................................................................ [ 30%]
+........................................................................ [ 61%]
+........................................................................ [ 92%]
+.................                                                        [100%]
+233 passed, 1 deselected in 9.38s
+
+Exit code: 0
+
+=== 2026-10-07T15:43:14.553114+00:00 ===
+$ git diff --check
+
+Exit code: 0
