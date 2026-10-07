@@ -10,6 +10,8 @@ This is a small, testable harness for experiments that turn **egocentric task vi
 * Each run is frozen, resumable, and evaluated offline in a separate step.
 
 Docs:
+* [docs/multi_provider_pilot.md](docs/multi_provider_pilot.md): OpenAI, Dennis's Vertex Gemini,
+  local key setup, and the single-type nested localization pilot (offline-verified only).
 * [docs/openrouter_response_fixes.md](docs/openrouter_response_fixes.md): why OpenRouter token
   accounting and response validation were corrected, and how the fixes are verified.
 * [docs/data_contract.md](docs/data_contract.md): input format for prepared data. **Start

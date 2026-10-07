@@ -1,0 +1,36 @@
+# Paid call template. Do not run until authorized. Use --video-root for real videos.
+name: exp005_loc_openai
+description: Draft localization pilot, 8 questions, one report. No live run yet.
+data:
+  benchmark: ../../data/hd_epic_loc_nested_v1/loc_n08_order1
+  report_ids:
+  - hdepic-dense-016
+  require_local_videos: true
+method:
+  name: whole_report
+prompt:
+  system: prompts/system.txt
+  user: prompts/user.txt
+  context_keys:
+  - task_name
+provider:
+  name: openai
+  model: gpt-4.1-2025-04-14
+  openai:
+    api_key_env: OPENAI_API_KEY
+    frame_height: 480
+    frame_fps: 2.0
+    max_frames: 1500
+    image_detail: auto
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 1
+  max_attempts: 1
+  timeout_s: 300
+pricing: null
