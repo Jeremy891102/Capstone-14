@@ -1,7 +1,7 @@
 """Parse a saved raw response into per-field answers. Pure function; no I/O.
 
 Expected response: a JSON object whose keys are the requested field ids and whose values are
-single uppercase choice letters, e.g. ``{"primary_appliance": "B"}``.
+choice labels (``A``..``Z``, ``AA``..), e.g. ``{"primary_appliance": "B"}``.
 
 Strictness (parser ``json_letters_v1``):
 * whole-response failures -> every requested field is ``invalid_output``:

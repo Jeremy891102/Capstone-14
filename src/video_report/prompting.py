@@ -66,15 +66,28 @@ def _identifiers(name: str, text: str) -> set[str]:
 def render_questions(fields: Sequence[FieldSpec]) -> str:
     blocks = []
     for n, f in enumerate(fields, start=1):
-        lines = [f"Q{n}. [field_id: {f.id}]", f"Question: {f.question}", "Options:"]
-        lines += [f"{choice_letter(i)}. {c}" for i, c in enumerate(f.choices)]
+        lines = [f"Q{n}. [field_id: {f.id}]", f"Question: {f.question}"]
+        if f.choices:
+            lines.append("Options:")
+            lines += [f"{choice_letter(i)}. {c}" for i, c in enumerate(f.choices)]
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
 
+def _answer_hint(f: FieldSpec) -> str:
+    letters = "/".join(f.letters())
+    hint = {
+        "single_choice": f"one letter: {letters}",
+        "multi_choice": f"list of letters from {letters}, [] if none",
+        "bool": "true or false",
+        "int": "integer",
+        "seconds": "number of seconds",
+    }[f.answer_type]
+    return f"<{hint}" + (' or "not_visible"' if f.allow_not_visible else "") + ">"
+
+
 def render_answer_format(fields: Sequence[FieldSpec]) -> str:
-    skeleton = {f.id: "<one letter: " + "/".join(f.letters()) + ">" for f in fields}
-    return json.dumps(skeleton, indent=2)
+    return json.dumps({f.id: _answer_hint(f) for f in fields}, indent=2)
 
 
 def render_context(context: Mapping[str, ContextValue], keys: Sequence[str]) -> str:

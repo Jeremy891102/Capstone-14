@@ -16,15 +16,31 @@ import math
 import re
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
+    model_validator,
+)
 
 SCHEMA_VERSION = "video_report.v1"
 
-# v1 supports exactly one answer type. Anything else is rejected at load time instead of
-# being scored with the wrong rule.
-SUPPORTED_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice"})
+# Anything else is rejected at load time instead of being scored with the wrong rule. Only
+# single_choice has a scorer so far; evaluation refuses runs with other types.
+CHOICE_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice", "multi_choice"})
+SUPPORTED_ANSWER_TYPES: frozenset[str] = CHOICE_ANSWER_TYPES | {"bool", "int", "seconds"}
+SCORED_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice"})
 
-MAX_CHOICES = 26  # one uppercase letter per choice
+# Target (and accepted answer) for a field with allow_not_visible when the video cannot tell.
+NOT_VISIBLE = "not_visible"
+
+# Choice labels run A..Z, then AA..AZ, BA..ZZ (spreadsheet-column style): at most 2 letters.
+MAX_CHOICES = 26 + 26 * 26
 
 _ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
@@ -44,14 +60,19 @@ ContextValue = str | int | float | bool
 def choice_letter(index: int) -> str:
     if not 0 <= index < MAX_CHOICES:
         raise ValueError(f"choice index out of range: {index}")
-    return chr(ord("A") + index)
+    if index < 26:
+        return chr(ord("A") + index)
+    hi, lo = divmod(index - 26, 26)
+    return chr(ord("A") + hi) + chr(ord("A") + lo)
 
 
 def letter_index(letter: str) -> int | None:
-    """Return the 0-based index for a single uppercase letter, else None."""
-    if len(letter) == 1 and "A" <= letter <= "Z":
+    """Return the 0-based index for a choice label (A..Z, AA..ZZ), else None."""
+    if not (1 <= len(letter) <= 2 and all("A" <= c <= "Z" for c in letter)):
+        return None
+    if len(letter) == 1:
         return ord(letter) - ord("A")
-    return None
+    return 26 + (ord(letter[0]) - ord("A")) * 26 + ord(letter[1]) - ord("A")
 
 
 class StrictModel(BaseModel):
@@ -107,8 +128,12 @@ class FieldSpec(StrictModel):
     id: Id
     question: str = Field(min_length=1)
     answer_type: str
-    # Ordered. Choice i is presented to the model as letter chr(65 + i).
-    choices: list[str]
+    # Ordered. Choice i is presented to the model as letter chr(65 + i). Required for
+    # single_choice / multi_choice, must be empty for bool / int / seconds.
+    choices: list[str] = Field(default_factory=list)
+    # The model may answer "not_visible" (hallucination checks). Set it on every field of a
+    # report, not only the trap fields, or its presence gives the answer away.
+    allow_not_visible: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> FieldSpec:
@@ -117,9 +142,13 @@ class FieldSpec(StrictModel):
                 f"field {self.id!r}: unsupported answer_type {self.answer_type!r}; "
                 f"v1 supports only {sorted(SUPPORTED_ANSWER_TYPES)}"
             )
+        if self.answer_type not in CHOICE_ANSWER_TYPES:
+            if self.choices:
+                raise ValueError(f"field {self.id!r}: {self.answer_type} takes no choices")
+            return self
         if not 2 <= len(self.choices) <= MAX_CHOICES:
             raise ValueError(
-                f"field {self.id!r}: single_choice needs 2..{MAX_CHOICES} choices, "
+                f"field {self.id!r}: {self.answer_type} needs 2..{MAX_CHOICES} choices, "
                 f"got {len(self.choices)}"
             )
         normalized = [c.strip() for c in self.choices]
@@ -171,10 +200,12 @@ class FieldTarget(StrictModel):
 
     report_id: Id
     field_id: Id
-    # The correct choice letter (Inspect-style multiple-choice target).
-    target: str
-    # Optional cross-check: if given, must equal choices[target] exactly. Catches choice
-    # reordering between reports.jsonl and ground_truth.jsonl.
+    # By answer_type: single_choice -> choice letter (Inspect-style); multi_choice -> list of
+    # distinct letters ([] = none); bool; int; seconds -> number >= 0. Any type with
+    # allow_not_visible may instead be "not_visible".
+    target: StrictBool | StrictInt | StrictFloat | StrictStr | list[StrictStr]
+    # Optional single_choice cross-check: if given, must equal choices[target] exactly.
+    # Catches choice reordering between reports.jsonl and ground_truth.jsonl.
     target_text: str | None = None
     # Privileged answer evidence (annotation text, timestamps, annotator ids, ...).
     evidence: dict[str, Any] = Field(default_factory=dict)

@@ -50,6 +50,7 @@ def score_field(
     parsed: ParsedResponse | None,
     not_executed_reason: str | None = None,
 ) -> FieldScore:
+    assert isinstance(target.target, str), "evaluation only scores single_choice letter targets"
     tidx = letter_index(target.target)
     assert tidx is not None and tidx < len(spec.choices), "targets are validated before scoring"
     common = {

@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from video_report.benchmarks.schema import SCORED_ANSWER_TYPES
 from video_report.config import PricingConfig
 from video_report.datasets.base import load_ground_truth, validate_targets
 from video_report.evaluation.aggregate import aggregate
@@ -41,6 +42,12 @@ def evaluate_run(
     reports = run.load_reports()
     by_report = {r.id: r for r in reports}
     selection = {r.id: [f.id for f in r.fields] for r in reports}
+    # ponytail: only single_choice is scored; add scorers when the other types' rules are set.
+    unscored = {f.answer_type for r in reports for f in r.fields} - SCORED_ANSWER_TYPES
+    if any(f.allow_not_visible for r in reports for f in r.fields):
+        unscored.add("not_visible answers")
+    if unscored:
+        raise ValueError(f"no scorer yet for {sorted(unscored)}; only single_choice is scored")
     # Frozen reports hold only the selected fields, so other fields' targets are skipped.
     targets = validate_targets(
         reports, load_ground_truth(ground_truth_path), selection, reject_unknown_fields=False

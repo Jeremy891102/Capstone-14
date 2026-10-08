@@ -77,8 +77,8 @@ def test_invalid_ids_rejected(bad_id: str) -> None:
 @pytest.mark.parametrize(
     "choices, msg",
     [
-        (["only one"], "2..26 choices"),
-        ([f"c{i}" for i in range(27)], "2..26 choices"),
+        (["only one"], "2..702 choices"),
+        ([f"c{i}" for i in range(703)], "2..702 choices"),
         (["same", "same"], "duplicate choices"),
         (["same", " same "], "duplicate choices"),
         (["ok", "   "], "non-empty"),
