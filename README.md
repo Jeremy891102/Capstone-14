@@ -207,3 +207,7 @@ and in the build log. In short:
   * a fully green CI run on GitHub (partially observed; see the build log)
 
 Passing tests do not make this production-ready.
+
+Smoke-test runs automatically produce execution and evaluation logs; see
+[logging workflow](docs/smoke_test_logging.md) and the
+[five-video results and workflow](docs/smoke_test_results.md).

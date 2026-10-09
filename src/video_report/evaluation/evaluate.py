@@ -118,4 +118,7 @@ def evaluate_run(
     write_jsonl(out_dir / "field_scores.jsonl", [s.to_json() for s in scores])
     write_jsonl(out_dir / "call_parses.jsonl", call_rows)
     atomic_write_json(out_dir / "metrics.json", metrics)
+    from video_report.run_log import export_run_log
+
+    export_run_log(run, out_dir)
     return out_dir, metrics

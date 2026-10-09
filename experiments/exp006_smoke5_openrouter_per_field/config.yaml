@@ -1,0 +1,33 @@
+# Requires original videos, API key, verified pricing, and paid-run authorization.
+name: exp006_smoke5_openrouter_per_field
+description: 'Draft smoke test: 5 videos x 8 localization questions. No live API validation
+  yet.'
+data:
+  benchmark: ../../data/hd_epic_smoke5_loc8_v1
+  require_local_videos: true
+method:
+  name: per_field
+prompt:
+  system: prompts/system.txt
+  user: prompts/user.txt
+  context_keys:
+  - task_name
+provider:
+  name: openrouter
+  model: google/gemini-3.5-flash-lite
+  openrouter:
+    api_key_env: OPENROUTER_API_KEY
+    clip_height: 480
+    clip_fps: 2.0
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 1
+  max_attempts: 1
+  timeout_s: 300
+pricing: null
