@@ -93,18 +93,70 @@ G Missing Step(遺漏步驟)。
 | `seconds` | 大於等於 0 的數字,四捨五入到 0.1 秒 |
 | 任何類型 | `"not_visible"`。每個欄位都允許此值(`allow_not_visible: true`),因此陷阱欄位不會顯得特別 |
 
+### 誘餌(decoy)步驟
+
+誘餌是**影片中沒有做、但被當成這份報告的步驟來發問**的假步驟,用來測試模型會不會幻覺。
+每份報告固定 2 個:1 個 obvious、1 個 plausible。
+
+#### 1. 產生方式
+
+由 `scripts/build_cc4d_dense.py` 的 `pick_decoys()` 在每份報告產生一次:
+
+1. **建立候選池:** 取資料集中**其他食譜**(`activity_id` 不同)的所有步驟,文字為
+   `error_annotations.json` 的 `step_annotations[].description`(去掉 `Rinse-` 這類前綴)。
+   誘餌是原標註者寫的真實步驟,腳本不會組合或生成文字。
+2. **計算詞彙重疊:** 對每個候選,計算它與本食譜所有步驟用詞的重疊數。
+   詞的定義:英文字母組成、長度大於 2、且不在停用詞表(the, and, with, into, for, about,
+   until, from, over, onto, each)內。
+3. **各挑一個:**
+   - **obvious:** 從重疊數為 0 的候選中隨機挑一個(與本食譜沒有任何共同的實詞)。
+     例如在 Microwave Egg Sandwich 中出現「Add chopped cilantro to the bowl」。
+   - **plausible:** 候選依重疊數由高到低排序,從前 10 名中隨機挑一個。
+     例如「Add 1/3 cup cheddar cheese to a microwave-safe cup」。
+
+隨機種子為 `{seed}:{recording_id}`,相同 seed 與錄影一定得到相同誘餌。
+
+#### 2. 篩選門檻
+
+候選池在上述步驟 2 之前,會先排除與本食譜**任一步驟過於相似**的候選:
+
+- **相似度:** 兩段文字的詞集合(定義同上)的 Jaccard 相似度 = 交集 ÷ 聯集。
+- **門檻:** `NEAR_DUP = 0.6`。相似度 ≥ 0.6 的候選一律排除,完全相同的文字也包含在內。
+- **比較範圍:** 本食譜在**所有錄影**中出現過的步驟,不只是當前這一支。
+- **目的:** 避免誘餌其實是本食譜某步驟的改寫(例如只差冠詞、標點或 other/another),
+  否則模型看到影片做了這步卻答「沒做」,會被誤判為幻覺。
+- **效果:** 加入門檻前,有 11 份報告的 plausible 誘餌與真實步驟的相似度 ≥ 0.8
+  (例如「crack one egg in a bowl」對「Crack one egg in the bowl」)。加入後,全部 384 個
+  plausible 誘餌與本食譜步驟的最高相似度為 0.57。
+- **限制:** 門檻只看詞彙,不看語意。像「Add 1/4 tsp salt」與「Add 1/3 tsp salt」這類只差量詞的步驟,
+  相似度可能低於門檻而仍被抽到。plausible 的擬真程度尚未經人工逐一檢查。
+
+#### 3. 運用方式
+
+誘餌在報告中有兩種用法:
+
+| 用在哪 | 怎麼用 | 正確答案 |
+| --- | --- | --- |
+| 步驟層級題目 | 照真實步驟的格式,對每個誘餌問 `correct`、`error_types`、`duration` 共 3 題 | 三題皆為 `"not_visible"` |
+| 報告層級的選項 | 文字加入 `skipped_steps`、`first_step`、`longest_step` 的選項清單 | `skipped_steps`:誘餌是正確答案之一(它們沒被做過);`first_step`、`longest_step`:誘餌不會是答案 |
+
+- **選項清單:** `skipped_steps` 的選項是本食譜所有步驟(含遺漏的)加 2 個誘餌;
+  `first_step`、`longest_step` 的選項是有影像的步驟加 2 個誘餌。誘餌必須出現在每一個選項清單中,
+  否則「沒出現在選項裡的步驟」就會暴露誘餌身分。
+- **欄位 id 與順序:** 誘餌的步驟區塊與真實步驟一起打亂,再統一重新編號為 `step01`…`stepNN`,
+  所以從欄位 id 或順序看不出哪些是誘餌。
+- **記錄位置:** 誘餌的種類(obvious / plausible)、原始 `step_id` 與來源食譜名稱只記在
+  ground truth 的證據(`evidence.decoy`、`evidence.step_id`、`evidence.source_activity`),
+  以及報告的 `metadata.decoys`,模型看不到。評估時可據此分開統計兩種誘餌的表現。
+- **數量:** 每份報告 2 個誘餌 × 3 題 = 6 題,全部 384 份共 2,304 題,即 README 中
+  `"not_visible"` 目標的總數。
+
 ### 防止洩漏答案的設計
 
 - **步驟以描述命名,絕不使用編號。** CaptainCook4D 的 `step_id` 順序並不是食譜應該執行的順序。
 - **重複的描述會加上序數。** 當食譜中某個步驟重複出現(例如攪拌兩次),各份副本會依實際執行的先後標示為「(1st time)」、「(2nd time)」。
 - **步驟區塊會被打亂,並在打亂後重新編號為 `step01`…`stepNN`。** 這樣欄位順序不會暴露真實的步驟順序,欄位 id 也不會暴露哪些是誘餌。原始的 `step_id` 只保留在 ground truth 的證據中。
-- **每份報告有兩個來自其他食譜的誘餌:**
-  - **明顯**的誘餌,與本食譜沒有任何共同的實詞,例如在 Microwave Egg Sandwich 中出現「Add chopped cilantro to the bowl」;
-  - **擬真**的誘餌,從與本食譜用詞重疊最多的 10 個步驟中隨機挑選,例如「Add 1/3 cup cheddar cheese to a microwave-safe cup」。
-
-  候選誘餌若與本食譜任一步驟的詞彙 Jaccard 相似度 ≥ 0.6(`NEAR_DUP`),會先被排除,避免誘餌其實是本食譜某步驟的改寫(例如只差冠詞或標點)。
-
-  誘餌也會出現在每一個步驟選項清單中。
+- **每份報告有兩個來自其他食譜的誘餌步驟。** 產生方式、篩選門檻與用法見下一節。
 
 ## 模型的輸入
 
