@@ -51,14 +51,21 @@
 `skipped_steps`、`first_step`、`longest_step` 的選項為食譜步驟加上 2 個誘餌,順序已打亂。
 `skipped_steps` 的選項包含所有步驟(含遺漏的);`first_step`、`longest_step` 只含完成的步驟。
 
-### 步驟層級題目(每個步驟 3 題,含誘餌)
+### 步驟層級題目
 
-| 欄位 id | 類型 | 問題 | 真實步驟的答案 | 誘餌的答案 | 來自哪部分標註 |
-| --- | --- | --- | --- | --- | --- |
-| `stepNN_correct` | bool | 步驟「…」是否做對了? | 若步驟沒有錯誤標籤則為 `true` | `"not_visible"` | 該步驟的 `errors[]` 是否為空;題目中的步驟名來自 `description` |
-| `stepNN_error_types` | multi_choice | 步驟「…」犯了哪些錯誤? | 錯誤標籤,無錯誤則為 `[]` | `"not_visible"` | 該步驟 `errors[].tag` 對應到 A–G 選項 |
-| `stepNN_duration` | seconds | 步驟「…」花了多少秒? | 結束 − 開始 | `"not_visible"` | 該步驟的 `end_time − start_time` |
-| (誘餌) | | | | | 誘餌的步驟文字取自**其他食譜**的步驟 `description`;`step_id` 與來源食譜名稱只記在 ground truth 證據中 |
+步驟層級題目分兩部分:
+
+- **真實步驟:** 食譜中的每個真實步驟,固定問下表的 3 題。
+- **不存在的步驟:** 在所有真實步驟之外,另外加入 2 個影片中根本沒有的步驟(誘餌,見下文
+  「誘餌(decoy)步驟」),同樣固定問這 3 題。這 2 個步驟共 6 題,**答案全部是 `"not_visible"`**。
+
+| 欄位 id | 類型 | 問題 | 真實步驟的答案 | 來自哪部分標註 |
+| --- | --- | --- | --- | --- |
+| `stepNN_correct` | bool | 步驟「…」是否做對了? | 若步驟沒有錯誤標籤則為 `true` | 該步驟的 `errors[]` 是否為空;題目中的步驟名來自 `description` |
+| `stepNN_error_types` | multi_choice | 步驟「…」犯了哪些錯誤? | 錯誤標籤,無錯誤則為 `[]` | 該步驟 `errors[].tag` 對應到 A–G 選項 |
+| `stepNN_duration` | seconds | 步驟「…」花了多少秒? | 結束 − 開始 | 該步驟的 `end_time − start_time` |
+
+不存在的步驟沿用同樣的欄位、問題與選項,三題的答案都是 `"not_visible"`。它們的步驟文字取自**其他食譜**的步驟 `description`,不來自這支錄影的標註。
 
 `error_types` 的選項固定為以下 7 個:A Preparation(準備)、B Measurement(計量)、
 C Technique(技巧)、D Timing(時間)、E Temperature(溫度)、F Order(順序)、
@@ -137,7 +144,7 @@ G Missing Step(遺漏步驟)。
 
 | 用在哪 | 怎麼用 | 正確答案 |
 | --- | --- | --- |
-| 步驟層級題目 | 照真實步驟的格式,對每個誘餌問 `correct`、`error_types`、`duration` 共 3 題 | 三題皆為 `"not_visible"` |
+| 步驟層級題目 | 與真實步驟使用相同的 3 題 `correct`、`error_types`、`duration` | 三題皆為 `"not_visible"` |
 | 報告層級的選項 | 文字加入 `skipped_steps`、`first_step`、`longest_step` 的選項清單 | `skipped_steps`:誘餌是正確答案之一(它們沒被做過);`first_step`、`longest_step`:誘餌不會是答案 |
 
 - **選項清單:** `skipped_steps` 的選項是本食譜所有步驟(含遺漏的)加 2 個誘餌;
