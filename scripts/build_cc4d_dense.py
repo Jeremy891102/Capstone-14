@@ -32,6 +32,7 @@ OUT.mkdir(parents=True, exist_ok=True)
 TAGS = ["Preparation", "Measurement", "Technique", "Timing", "Temperature", "Order", "Missing Step"]
 NV = "not_visible"
 ORDINAL = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th"}
+NEAR_DUP = 0.6  # decoys at least this similar (word Jaccard) to a real step are dropped
 STOP = {"the", "and", "with", "into", "for", "about", "until", "from", "over", "onto", "each"}
 
 recs = {r["recording_id"]: r for r in json.loads((A / "error_annotations.json").read_text())}
@@ -48,6 +49,10 @@ def words(text):
     return {w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 2 and w not in STOP}
 
 
+def jaccard(a, b):
+    return len(a & b) / len(a | b) if a | b else 1.0
+
+
 def tags_of(step):
     return {e["tag"].removesuffix(" Error") for e in step.get("errors") or []}
 
@@ -62,13 +67,13 @@ for r in recs.values():
 def pick_decoys(activity, rng):
     own = recipe_steps[activity]
     own_words = set().union(*map(words, own.values()))
-    own_texts = {t.lower() for t in own.values()}
+    own_words_each = [words(t) for t in own.values()]
     pool = [
         (len(words(t) & own_words), sid, t, a)
         for a, steps in recipe_steps.items()
         if a != activity
         for sid, t in steps.items()
-        if t.lower() not in own_texts
+        if all(jaccard(words(t), o) < NEAR_DUP for o in own_words_each)  # also drops near-duplicates
     ]
     obvious = rng.choice([p for p in pool if p[0] == 0])
     plausible = rng.choice(sorted(pool, reverse=True)[:10])  # most word overlap with this recipe
