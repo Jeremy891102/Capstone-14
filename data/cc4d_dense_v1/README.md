@@ -2,8 +2,7 @@
 
 A CaptainCook4D benchmark in the `video_report.v1` format. Each report covers one recording.
 A report asks about the recipe as a whole and about each step: was the step done correctly,
-what mistakes were made, and how long it took. Two decoy steps per report test for
-hallucination.
+what mistakes were made, and how long it took.
 
 - **Source:** CaptainCook4D annotations (`error_annotations.json`,
   `complete_step_annotations.json`). The videos are GoPro 360p.
@@ -21,73 +20,113 @@ hallucination.
 
 ## Question format
 
-### Report-level questions (5–6 per report)
+### Source annotations (what the questions are built from)
 
-| field id | type | question | answer |
-| --- | --- | --- | --- |
-| `skipped_steps` | multi_choice | Which of these steps were not done in the video? | Missing steps plus the 2 decoys (decoys were never done) |
-| `order_violated` | bool | Were any steps done out of the order the recipe requires? | Any step tagged `Order Error` |
-| `num_steps_with_errors` | int | How many recipe steps were done wrong or skipped? | Steps with any error tag |
-| `first_step` | single_choice | Which of these steps was done first? | Step with the earliest start time |
-| `total_duration` | seconds | How many seconds passed from the start of the first step to the end of the last step? | Last end time − first start time |
-| `longest_step` | single_choice | Which of these steps took the longest? | Longest step. Omitted when the top two durations are within 20% (271 of 384 reports have it) |
+Every question comes from one record in `error_annotations.json` (one per recording, called
+"the recording" below). Only the recipe name comes from `complete_step_annotations.json`. The
+fields used:
 
-The options for `skipped_steps`, `first_step` and `longest_step` are the recipe's steps plus
-the 2 decoys, in shuffled order.
+| source field | meaning |
+| --- | --- |
+| `recording_id` | recording id, e.g. `12_51` |
+| `activity_id` | recipe id |
+| `step_annotations[]` | the recording's steps, sorted by `step_id` |
+| `step_annotations[].step_id` | step id (kept only in the ground-truth evidence, never shown to the model) |
+| `step_annotations[].description` | step description, formatted like `Rinse-Rinse a tomato`; we keep the part after the `-` |
+| `step_annotations[].start_time` / `end_time` | start and end of the step in the video, in seconds; `-1` means no footage |
+| `step_annotations[].errors[].tag` | error tag, e.g. `Order Error`; we drop the ` Error` suffix. 7 tags plus `Other` |
+| `complete_step_annotations.json[<recording_id>].activity_name` | recipe name |
 
-### Per-step questions (3 per step, decoys included)
+Below, a "step" is one entry of `step_annotations`, and a "done step" is one with
+`start_time >= 0`.
 
-| field id | type | question | answer for a real step | answer for a decoy |
+### Report-level questions (4–5 per report)
+
+| field id | type | question | answer | source annotation |
 | --- | --- | --- | --- | --- |
-| `stepNN_correct` | bool | Was the step "…" done correctly? | `true` if the step has no error tags | `"not_visible"` |
-| `stepNN_error_types` | multi_choice | What mistakes were made in the step "…"? | Error tags, `[]` if none | `"not_visible"` |
-| `stepNN_duration` | seconds | How many seconds did the step "…" take? | end − start | `"not_visible"` |
+| `skipped_steps` | multi_choice | Which of these steps were not done in the video? | The missing steps (may be empty) | Missing steps are the steps whose `errors[].tag` contains `Missing Step`, named by `description`. Options are all the missing steps plus real steps picked at random from the rest, 8 in total |
+| `order_violated` | bool | Were any steps done out of the order the recipe requires? | Any step tagged `Order Error` | Any step whose `errors[].tag` contains `Order Error` |
+| `steps_done` | int | How many of the recipe steps were done in the video? | The number of steps with footage (min 8, median 14, max 25) | Steps with `start_time >= 0`. Missing steps (`start_time = -1`) and steps with timestamp −1 but no Missing Step tag are not counted |
+| `total_duration` | seconds | How many seconds passed from the start of the first step to the end of the last step? | Last end time − first start time | `max(end_time) − min(start_time)` over the done steps |
+| `longest_step` | single_choice | Which of these steps took the longest? | The longest step. Omitted when the top two durations are within 20% (255 of 350 reports have it) | The done step with the largest `end_time − start_time`. Options are the answer plus 7 other done steps picked at random, 8 in total |
+
+The option lists of `skipped_steps` and `longest_step` are **always 8 real steps**, shuffled.
+This way the number of steps in a recipe does not change the number of options, so it cannot
+become a hidden factor in model performance.
+
+- `skipped_steps`: the 8 options contain **all** the missing steps; the rest are filled with
+  other steps at random (possibly done steps). The dataset has at most 6 missing steps per
+  report, so they always fit.
+- `longest_step`: the 8 options use only steps with footage; 1 is the answer and 7 are picked
+  at random.
+- Recordings with fewer than 8 done steps (19 of them) cannot fill the option list, so the
+  **whole report was removed**.
+- 15 more reports were removed: some of their step names (for example repeated steps labelled
+  "(1st time)", or steps worded differently from the task graph) have no match in the `recipe`
+  text, so the questions and the recipe list would disagree.
+- So the number of reports goes from 384 to 350.
+
+### Per-step questions
+
+Every step gets the same 3 questions (exceptions for missing and `Other` steps below).
+
+| field id | type | question | answer | source annotation |
+| --- | --- | --- | --- | --- |
+| `stepNN_correct` | bool | Was the step "…" done correctly? | `true` if the step has no error tags | Whether the step's `errors[]` is empty. The step name in the question comes from `description` |
+| `stepNN_error_types` | multi_choice | What mistakes were made in the step "…"? | Error tags, `[]` if none | The step's `errors[].tag` mapped to options A–G |
+| `stepNN_duration` | seconds | How many seconds did the step "…" take? | end − start | The step's `end_time − start_time` |
 
 The `error_types` options are always these 7: A Preparation, B Measurement, C Technique,
-D Timing, E Temperature, F Order, G Missing Step.
+D Timing, E Temperature, F Order, G Missing Step. Their definitions are in
+`input.context.error_definitions`. The paper does not define an `Other` category, so `Other`
+steps get no `error_types` question.
 
-Two cases ask fewer per-step questions:
-
-- A **missing step** (no footage, timestamps −1) has no `duration` question. Its `correct`
-  answer is `false` and its `error_types` answer is `["G"]` (Missing Step).
-- A step tagged **`Other`** (8 steps in the dataset) has no `error_types` question, because
-  `Other` is not one of the options.
+The ground-truth evidence of every step carries the original `step_id`, `start_time`,
+`end_time` and `errors`, so answers can be traced back to the source annotation.
 
 ### Answer formats
 
 | type | answer format |
 | --- | --- |
-| `single_choice` | One label: `"A"` … `"Z"`, then `"AA"`, `"AB"`, … for options past 26 |
+| `single_choice` | One label: `"A"` … `"H"` (always 8 options); the format also supports `"AA"`, `"AB"`, … past 26 options |
 | `multi_choice` | A list of distinct labels, e.g. `["C", "A"]`; `[]` means none |
 | `bool` | `true` / `false` |
 | `int` | An integer |
 | `seconds` | A number ≥ 0, rounded to 0.1 s |
-| any type | `"not_visible"`. Every field allows it (`allow_not_visible: true`), so the trap fields don't stand out |
 
 ### Design choices that prevent leaks
 
-- **Steps are named by their description, never by number.** CaptainCook4D `step_id`
-  order is not the order a recipe should be done in.
+- **Steps are named by their description, never by number.** CaptainCook4D `step_id` order is
+  not the order a recipe should be done in.
 - **Repeated descriptions get an ordinal.** When a recipe repeats a step (e.g. stirring
   twice), the copies are labelled "(1st time)", "(2nd time)" in the order they were done.
-- **Step blocks are shuffled and renumbered `step01`…`stepNN` after shuffling.** So field
-  order doesn't reveal the real step order, and field ids don't reveal which steps are decoys.
-  Original `step_id`s are kept only in the ground-truth evidence.
-- **Two decoys per report, taken from other recipes:**
-  - an **obvious** decoy, which shares no content words with this recipe, e.g. "Add chopped
-    cilantro to the bowl" in Microwave Egg Sandwich;
-  - a **plausible** decoy, picked at random from the 10 steps with the most word overlap,
-    e.g. "Add 1/3 cup cheddar cheese to a microwave-safe cup".
+- **Step blocks are shuffled and renumbered `step01`…`stepNN` after shuffling.** So field order
+  does not reveal the real step order. Original `step_id`s are kept only in the ground-truth
+  evidence.
 
-  Decoys also appear in every step option list.
 
 ## The model's input
 
 - **Video:** `<recording_id>_360p.mp4`, sent from 0 s to 5 s after the last annotated step
   (`time_range`).
-- **Context:** `task_name`, the recipe name. It is sent only if the experiment whitelists it.
-- **No standard step list is given separately.** The recipe's steps appear only as options in
-  the step questions.
+- **Context (`input.context`):** the dataset provides three fields. An experiment must list
+  them in `prompt.context_keys` for the model to see them, e.g.
+  `context_keys: [task_name, error_definitions, recipe]`:
+  - `task_name`: the recipe name.
+  - `error_definitions`: definitions of the seven `error_types` categories (Preparation,
+    Measurement, Technique, Timing, Temperature, Order, Missing Step), in English, one per line.
+    Without this field the model only sees the category names.
+  - `recipe`: the recipe's steps and the prerequisites of each step, taken from the task graph
+    in the official CaptainCook4D annotations repository. Each line is one step description,
+    followed by `(after: …)` listing the steps that must be finished first. A step with no
+    `after` can be done at any point, and steps that do not depend on each other can be done
+    in either order. The list is sorted by the original `step_id` and has no step numbers, so
+    the list order is not the correct order.
+- **The correct order is a partial order, not a single sequence.** Error-free recordings of the
+  same recipe follow different orders, because many steps do not depend on each other.
+- **There is no "correct way to do each step".** The recipe has one sentence per step and no
+  further instructions. Measurement, Timing and Temperature specifications are usually in the
+  description; Technique and Preparation have no explicit standard.
 
 ## Data distribution
 
@@ -95,15 +134,15 @@ Two cases ask fewer per-step questions:
 
 | | value |
 | --- | --- |
-| Reports (recordings) | 384 |
-| Recipes | 24 (12–20 recordings each) |
-| Clip length (min) | median 13.1, mean 14.5, range 3.3–41.1 |
-| Total video sent | 93.1 h |
-| Recipe steps per report | median 14, mean 14.8, range 7–26 |
-| Reports with at least one error | 220 (57%) |
-| Errors per report | median 2, mean 5.1, max 23 |
-| Reports with order violations | 117 |
-| Reports with skipped steps | 140 (285 skipped steps in total) |
+| Reports (recordings) | 350 (of 384: 19 removed for having fewer than 8 done steps, then 15 removed because step names do not match the recipe text) |
+| Recipes | 23 (11–18 recordings each) |
+| Clip length (min) | median 13.6, mean 15.0, range 3.9–41.1 |
+| Total video sent | 87.2 h |
+| Recipe steps per report | median 15, mean 15.1, range 9–25 |
+| Reports with at least one error | 192 (55%) |
+| Errors per report | median 1, mean 4.9, max 23 |
+| Reports with order violations | 100 |
+| Reports with skipped steps | 121 (240 skipped steps in total) |
 
 Clip length is `time_range.end`, which is the last annotated step's end plus 5 s. The full
 video files may be slightly longer.
@@ -112,61 +151,61 @@ video files may be slightly longer.
 
 | | value |
 | --- | --- |
-| Total questions | 21,300 |
-| Per report | median 54, mean 55.5, range 30–87 |
-| Formula | 3 × (steps + 2 decoys) + 5 or 6, minus one per missing step and one per `Other` step |
+| Total questions | 17,291 |
+| Per report | median 47, mean 49.4, range 31–80 |
+| Formula | 3 × steps + 4 or 5, minus one per missing step and one per `Other` step |
 
 | questions per report | reports |
 | --- | --- |
-| 30–39 | 34 |
-| 40–49 | 120 |
-| 50–59 | 89 |
-| 60–69 | 96 |
-| 70–79 | 20 |
-| 80–87 | 25 |
+| 30–39 | 111 |
+| 40–49 | 74 |
+| 50–59 | 86 |
+| 60–69 | 49 |
+| 70–79 | 22 |
+| 80 | 8 |
 
 ### Question types
 
 | type | count | share |
 | --- | --- | --- |
-| bool | 6,852 | 32.2% |
-| multi_choice | 6,844 | 32.1% |
-| seconds | 6,565 | 30.8% |
-| single_choice | 655 | 3.1% |
-| int | 384 | 1.8% |
+| bool | 5,645 | 32.6% |
+| multi_choice | 5,639 | 32.6% |
+| seconds | 5,402 | 31.2% |
+| single_choice | 255 | 1.5% |
+| int | 350 | 2.0% |
 
 | field | count |
 | --- | --- |
-| `stepNN_correct` | 6,468 (5,700 real + 768 decoy) |
-| `stepNN_error_types` | 6,460 |
-| `stepNN_duration` | 6,181 (5,413 real + 768 decoy) |
-| `skipped_steps`, `order_violated`, `num_steps_with_errors`, `first_step`, `total_duration` | 384 each |
-| `longest_step` | 271 |
+| `stepNN_correct` | 5,295 |
+| `stepNN_error_types` | 5,289 |
+| `stepNN_duration` | 5,052 |
+| `skipped_steps`, `order_violated`, `steps_done`, `total_duration` | 350 each |
+| `longest_step` | 255 |
 
 ### Answers
 
 | | value |
 | --- | --- |
-| `"not_visible"` targets (decoy questions) | 2,304 (10.8%, 6 per report) |
-| Real steps done correctly (`correct = true`) | 3,736 of 5,700 (65.5%) |
-| `error_types` answers by number of tags | 0 tags: 3,736; 1: 1,437; 2: 454; 3: 64; 4: 1 |
-| Error tag frequency | Order 791, Technique 498, Preparation 394, Measurement 331, Missing Step 285, Timing 177, Temperature 65 |
-| Step duration (s) | median 35.0, deciles 9.8 / 15.7 / 21.6 / 28.1 / 35.0 / 44.1 / 57.6 / 76.9 / 118.3, range 1.0–1068.2 |
-| Option count (step lists) | 7–28; only `cc4d-23_5 first_step` has a two-letter answer (`AA`) |
+| Steps done correctly (`correct = true`) | 3,597 of 5,295 (67.9%) |
+| `error_types` answers by number of tags | 0 tags: 3,597; 1: 1,244; 2: 390; 3: 57; 4: 1 |
+| Error tag frequency | Order 690, Technique 441, Preparation 339, Measurement 279, Missing Step 240, Timing 153, Temperature 57 |
+| Step duration (s) | median 34.85, deciles 9.9 / 15.8 / 21.5 / 28.0 / 34.9 / 44.0 / 57.3 / 77.2 / 119.5, range 1.0–1068.2 |
+| Option count (step lists) | always 8; answer labels are single letters A–H |
 
 ## Known caveats
 
-- **Answering "correct, no errors" for every step is a strong baseline.** It gets 65.5% on
-  `correct` and 65.6% on `error_types` (3,736 of 5,692) for real steps. Report accuracy against this baseline.
+- **Answering "correct, no errors" for every step is a strong baseline.** It gets 67.9% on
+  `correct` and 68.0% on `error_types` (3,597 of 5,289). Report accuracy against this baseline.
 - **`Order` is the most common error tag,** but judging it needs the whole video's sequence,
   not a single step.
-- **The obvious decoys can be spotted from the recipe name alone.** The plausible decoys are
-  the real test. Plausibility comes from a word-overlap heuristic and has not been checked by
-  hand.
+- **There are no hallucination test questions.** The dataset has no decoy steps. The only
+  indirect check is `skipped_steps` and the `Missing Step` tag, which show whether a model
+  says a step was done when it was not.
 - **Very short steps are scored against annotation noise.** Durations count as correct
-  within max(2 s, 25% of the target) (`docs/scoring_rules.md`). For the 395 real steps under
-  8 s, that is the 2 s floor, which is about the size of annotation boundary noise.
+  within max(2 s, 25% of the target) (`docs/scoring_rules.md`). For the 358 steps under 8 s,
+  that is the 2 s floor, which is about the size of annotation boundary noise.
 - **Annotation quirks handled by the script:**
-  - 53 recordings reuse one `step_id` for two different descriptions.
-  - Some steps have timestamps −1 without a Missing Step tag; these get no duration
-    question.
+  - 38 recordings have repeated step descriptions (different `step_id`s, same text); they are
+    told apart with ordinals such as "(1st time)".
+  - 1 recording reuses one `step_id` for two different descriptions.
+  - Some steps have timestamps −1 without a Missing Step tag; these get no duration question.

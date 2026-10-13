@@ -1,15 +1,19 @@
 """CaptainCook4D annotations -> video_report.v1 benchmark with mixed answer types (Template A).
 
-Per report (one recording): 6 report-level fields, 3 fields per recipe step (correct / error
-types / duration), and 2 decoy steps from other recipes whose 3 fields all have target
-"not_visible" (hallucination checks). Decoys also appear in the step option lists (skipped /
-first / longest; for skipped_steps they are correct answers, since they were not done). Steps
-are named by description, never by number, and step blocks and option lists are shuffled, so
-neither field order nor option lists reveal the real order or which steps are decoys.
+Per report (one recording): 4-5 report-level fields and 3 fields per recipe step (correct / error
+types / duration). The skipped_steps and longest_step option lists have exactly 8 options (real
+steps only), so recipe length does not change the number of options; recordings with fewer than 8
+filmed steps are dropped. Steps are named by description, never by number, and step blocks and
+option lists are shuffled, so neither field order nor option lists reveal the real step order.
 
 Usage: python scripts/build_cc4d_dense.py <cc4d annotation dir> data/cc4d_dense_v1 \
          [--recordings 12_51 12_17] [--seed 0]
-The annotation dir holds error_annotations.json and complete_step_annotations.json.
+The annotation dir holds error_annotations.json, complete_step_annotations.json and task_graphs/
+(the 24 <recipe>.json files from github.com/CaptainCook4D/annotations).
+
+Each report's input.context carries `task_name`, `error_definitions` (the 7 error categories, from
+the CaptainCook4D paper) and `recipe`: the recipe's steps with the steps each
+must come after, taken from the task graph (prerequisite order, not a single fixed sequence).
 """
 
 import argparse
@@ -30,10 +34,24 @@ A, OUT = pathlib.Path(args.annotations), pathlib.Path(args.out)
 OUT.mkdir(parents=True, exist_ok=True)
 
 TAGS = ["Preparation", "Measurement", "Technique", "Timing", "Temperature", "Order", "Missing Step"]
-NV = "not_visible"
+# Error category definitions, from Section 3.2 of the CaptainCook4D paper (arXiv 2312.14556)
+ERROR_DEFINITIONS = "\n".join(
+    f"- {t}: {d}"
+    for t, d in {
+        "Preparation": "the participant uses soiled or wrong ingredients, or uses different tools.",
+        "Measurement": "the participant uses wrongly measured ingredients.",
+        "Technique": "the participant performs the required action incorrectly, leading to a wrong "
+        "outcome than expected.",
+        "Timing": "the participant performs a step in a shorter or longer duration than what is "
+        "prescribed (e.g. microwaving for a different time than the prescribed 30 seconds).",
+        "Temperature": "the participant sets a higher or lower power level in the microwave or on "
+        "a stove than what is prescribed.",
+        "Order": "the participant executes steps out of the required sequence.",
+        "Missing Step": "the participant omits to perform a step.",
+    }.items()
+)
 ORDINAL = {1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th"}
-NEAR_DUP = 0.6  # decoys at least this similar (word Jaccard) to a real step are dropped
-STOP = {"the", "and", "with", "into", "for", "about", "until", "from", "over", "onto", "each"}
+N_REAL = 8  # step option lists: 8 real steps, whatever the recipe length
 
 recs = {r["recording_id"]: r for r in json.loads((A / "error_annotations.json").read_text())}
 steps_file = json.loads((A / "complete_step_annotations.json").read_text())
@@ -45,43 +63,45 @@ def clean(desc):  # "Rinse-Rinse a tomato" -> "Rinse a tomato"
     return desc.split("-", 1)[1].strip() if "-" in desc else desc.strip()
 
 
-def words(text):
-    return {w for w in re.findall(r"[a-z]+", text.lower()) if len(w) > 2 and w not in STOP}
+def recipe_text(name):
+    """Recipe steps and their prerequisites from the task graph, as model-facing text."""
+    g = json.loads((A / "task_graphs" / (re.sub(r"[^a-z]", "", name.lower()) + ".json")).read_text())
+    end = max(map(int, g["steps"]))
+    desc = {int(k): clean(v) for k, v in g["steps"].items() if int(k) not in (0, end)}
+    after = {i: [] for i in desc}
+    for a, b in g["edges"]:
+        if a in desc and b in desc:
+            after[b].append(a)
+    depth = {}
 
+    def d(i):
+        depth[i] = depth.get(i) or 1 + max(map(d, after[i]), default=0)
+        return depth[i]
 
-def jaccard(a, b):
-    return len(a & b) / len(a | b) if a | b else 1.0
+    for i in desc:
+        d(i)
+    label = dict(desc)
+    for text in {t for t in desc.values() if list(desc.values()).count(t) > 1}:
+        same = sorted((i for i in desc if desc[i] == text), key=lambda i: (depth[i], i))
+        for n, i in enumerate(same, 1):
+            label[i] = f"{text} ({ORDINAL[n]} time)"
+    lines = [
+        f"- {label[i]}" + (f" (after: {'; '.join(label[j] for j in sorted(after[i]))})" if after[i] else "")
+        for i in sorted(desc)
+    ]
+    return list(label.values()), (
+        "A step may only be done after every step in its 'after' list is finished; "
+        "steps with no 'after' can be done at any point, and steps that do not depend on each "
+        "other can be done in either order.\n" + "\n".join(lines)
+    )
 
 
 def tags_of(step):
     return {e["tag"].removesuffix(" Error") for e in step.get("errors") or []}
 
 
-# every step of every recipe, for decoys: activity id -> {step_id: description}
-recipe_steps = {}
-for r in recs.values():
-    for s in r["step_annotations"]:
-        recipe_steps.setdefault(r["activity_id"], {})[s["step_id"]] = clean(s["description"])
-
-
-def pick_decoys(activity, rng):
-    own = recipe_steps[activity]
-    own_words = set().union(*map(words, own.values()))
-    own_words_each = [words(t) for t in own.values()]
-    pool = [
-        (len(words(t) & own_words), sid, t, a)
-        for a, steps in recipe_steps.items()
-        if a != activity
-        for sid, t in steps.items()
-        if all(jaccard(words(t), o) < NEAR_DUP for o in own_words_each)  # also drops near-duplicates
-    ]
-    obvious = rng.choice([p for p in pool if p[0] == 0])
-    plausible = rng.choice(sorted(pool, reverse=True)[:10])  # most word overlap with this recipe
-    return [("obvious", *obvious[1:]), ("plausible", *plausible[1:])]
-
-
 def q(fid, question, answer_type, target, evidence, choices=None):
-    field = {"id": fid, "question": question, "answer_type": answer_type, "allow_not_visible": True}
+    field = {"id": fid, "question": question, "answer_type": answer_type}
     if choices:
         field["choices"] = choices
     return field, {"field_id": fid, "target": target, "evidence": evidence}
@@ -91,13 +111,16 @@ def letters(idxs):
     return [choice_letter(i) for i in sorted(idxs)]
 
 
+norm = lambda t: re.sub(r"\s+", " ", t.lower())
+recipes = {a: recipe_text(n) for a, n in activity_names.items()}
+recipe_labels = {a: {norm(t) for t in labels} for a, (labels, _) in recipes.items()}
 reports, gt = [], []
 for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.split("_")]):
     r = recs[rid]
     rng = random.Random(f"{args.seed}:{rid}")
     steps = sorted(r["step_annotations"], key=lambda s: s["step_id"])
     done = [s for s in steps if s["start_time"] >= 0]  # -1 = Missing Step or annotation gap
-    if not done:
+    if len(done) < N_REAL:  # too few steps filmed to fill an 8-option list
         continue
     # model-facing names; a description that repeats gets "(1st time)", ... in time order
     label = {id(s): clean(s["description"]) for s in steps}
@@ -108,27 +131,31 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
         )
         for n, s in enumerate(same, 1):
             label[id(s)] = f"{text} ({ORDINAL[n]} time)"
-    # decoys also go into every step option list, or their absence there gives them away
-    decoys = pick_decoys(r["activity_id"], rng)
-    decoy_texts = [d for _, _, d, _ in decoys]
-
-    skip_opts = [label[id(s)] for s in steps] + decoy_texts
-    rng.shuffle(skip_opts)
+    # a step the recipe text does not list (a repeated step, or a variant wording) would confuse a
+    # model that reads the recipe: drop the recording
+    if any(norm(label[id(s)]) not in recipe_labels[r["activity_id"]] for s in steps):
+        continue
     missing = [label[id(s)] for s in steps if "Missing Step" in tags_of(s)]
-    done_opts = [label[id(s)] for s in done] + decoy_texts
-    rng.shuffle(done_opts)
+    others = [label[id(s)] for s in steps if label[id(s)] not in missing]
+    skip_opts = missing + rng.sample(others, N_REAL - len(missing))
+    rng.shuffle(skip_opts)
+
+    def longest_opts(answer):  # the answer and 7 other filmed steps, shuffled
+        rest = [label[id(s)] for s in done if label[id(s)] != answer]
+        opts = [answer] + rng.sample(rest, N_REAL - 1)
+        rng.shuffle(opts)
+        return opts
 
     def letter_of(opts, text):
         return letters([opts.index(text)])[0]
 
-    first = min(done, key=lambda s: s["start_time"])
     report_level = [
         q(
             "skipped_steps",
             "Which of these steps were not done in the video?",
             "multi_choice",
-            letters(skip_opts.index(t) for t in missing + decoy_texts),
-            {"skipped": missing, "decoys": decoy_texts},
+            letters(skip_opts.index(t) for t in missing),
+            {"skipped": missing},
             skip_opts,
         ),
         q(
@@ -139,19 +166,11 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
             {},
         ),
         q(
-            "num_steps_with_errors",
-            "How many recipe steps were done wrong or skipped?",
+            "steps_done",
+            "How many of the recipe steps were done in the video?",
             "int",
-            sum(bool(tags_of(s)) for s in steps),
+            len(done),
             {},
-        ),
-        q(
-            "first_step",
-            "Which of these steps was done first?",
-            "single_choice",
-            letter_of(done_opts, label[id(first)]),
-            {"step": label[id(first)]},
-            done_opts,
         ),
         q(
             "total_duration",
@@ -162,19 +181,20 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
         ),
     ]
     durs = sorted(((s["end_time"] - s["start_time"], label[id(s)]) for s in done), reverse=True)
-    if len(durs) < 2 or durs[0][0] >= 1.2 * durs[1][0]:  # skip when the top two are within 20%
+    if durs[0][0] >= 1.2 * durs[1][0]:  # skip when the top two are within 20%
+        opts = longest_opts(durs[0][1])
         report_level.append(
             q(
                 "longest_step",
                 "Which of these steps took the longest?",
                 "single_choice",
-                letter_of(done_opts, durs[0][1]),
+                letter_of(opts, durs[0][1]),
                 {"step": durs[0][1], "seconds": round(durs[0][0], 1)},
-                done_opts,
+                opts,
             )
         )
 
-    # field ids get their "stepNN_" prefix after the shuffle: step_ids would expose decoys
+    # field ids get their "stepNN_" prefix after the shuffle: step_ids would expose the step order
     blocks = []
     for s in steps:
         d, t = label[id(s)], tags_of(s)
@@ -207,28 +227,6 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
                 )
             )
         blocks.append(block)
-    for kind, sid, d, src in decoys:
-        ev = {"decoy": kind, "step_id": sid, "source_activity": activity_names[src]}
-        blocks.append(
-            [
-                q("correct", f'Was the step "{d}" done correctly?', "bool", NV, ev),
-                q(
-                    "error_types",
-                    f'What mistakes were made in the step "{d}"?',
-                    "multi_choice",
-                    NV,
-                    ev,
-                    TAGS,
-                ),
-                q(
-                    "duration",
-                    f'How many seconds did the step "{d}" take?',
-                    "seconds",
-                    NV,
-                    ev,
-                ),
-            ]
-        )
     rng.shuffle(blocks)
     for n, block in enumerate(blocks, 1):
         for field, target in block:
@@ -253,7 +251,11 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
                         },
                     }
                 ],
-                "context": {"task_name": names.get(rid, str(r["activity_id"]))},
+                "context": {
+                    "task_name": names.get(rid, str(r["activity_id"])),
+                    "recipe": recipes[r["activity_id"]][1],
+                    "error_definitions": ERROR_DEFINITIONS,
+                },
             },
             "fields": [f for f, _ in pairs],
             "source": {
@@ -266,7 +268,6 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
                 "created_by": "build_cc4d_dense",
                 "seed": args.seed,
                 "num_steps": len(steps),
-                "decoys": [{"kind": k, "step_id": sid} for k, sid, _, _ in decoys],
             },
         }
     )
@@ -285,7 +286,7 @@ w("ground_truth.jsonl", gt)
             "schema_version": "video_report.v1",
             "benchmark_id": OUT.name,
             "description": f"CaptainCook4D Template A: {len(reports)} recordings, {len(gt)} "
-            "fields of mixed answer types, incl. 2 decoy steps per report (target not_visible).",
+            "fields of mixed answer types.",
             "reports_file": "reports.jsonl",
             "ground_truth_file": "ground_truth.jsonl",
             "mock_responses_file": None,

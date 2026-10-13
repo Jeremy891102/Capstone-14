@@ -2,7 +2,6 @@
 
 一個採用 `video_report.v1` 格式的 CaptainCook4D 基準資料集。每份報告對應一支錄影。
 報告會詢問整份食譜的整體狀況,以及每個步驟的情形:該步驟是否做對、犯了哪些錯誤、花了多少時間。
-每份報告另含兩個誘餌步驟(decoy),用來測試模型是否會產生幻覺。
 
 - **資料來源:** CaptainCook4D 標註檔(`error_annotations.json`、
   `complete_step_annotations.json`)。影片為 GoPro 360p。
@@ -37,45 +36,46 @@
 
 下文的「步驟」指 `step_annotations` 的一筆;「完成的步驟」指 `start_time >= 0` 的步驟。
 
-### 報告層級題目(每份報告 5–6 題)
+### 報告層級題目(每份報告 4–5 題)
 
 | 欄位 id | 類型 | 問題 | 答案 | 來自哪部分標註 |
 | --- | --- | --- | --- | --- |
-| `skipped_steps` | multi_choice | 影片中哪些步驟沒有做? | 遺漏的步驟加上 2 個誘餌(誘餌從未被做過) | 遺漏步驟 = `errors[].tag` 含 `Missing Step Error` 的步驟(以 `description` 命名);選項 = 該錄影所有步驟的 `description` + 2 個誘餌 |
+| `skipped_steps` | multi_choice | 影片中哪些步驟沒有做? | 遺漏的步驟(可以為空) | 遺漏步驟 = `errors[].tag` 含 `Missing Step` 的步驟(以 `description` 命名);選項 = 全部遺漏步驟 + 從其餘步驟隨機補足的真實步驟,共 8 個 |
 | `order_violated` | bool | 是否有任何步驟違反食譜要求的順序? | 任何標有 `Order Error` 的步驟 | 任一步驟的 `errors[].tag` 含 `Order Error` |
-| `num_steps_with_errors` | int | 有多少個食譜步驟做錯或被跳過? | 帶有任何錯誤標籤的步驟數 | `errors[]` 非空的步驟數(`Missing Step` 與 `Other` 也算) |
-| `first_step` | single_choice | 以下哪個步驟最先被做? | 開始時間最早的步驟 | 完成的步驟中 `start_time` 最小者;選項 = 完成的步驟的 `description` + 2 個誘餌 |
+| `steps_done` | int | 影片中實際做了多少個食譜步驟? | 有影像的步驟數(最小 8,中位數 14,最大 25) | `start_time >= 0` 的步驟數;遺漏步驟(`start_time = -1`)與時間戳為 −1 但沒有 Missing Step 標籤的步驟都不算 |
 | `total_duration` | seconds | 從第一個步驟開始到最後一個步驟結束,經過了多少秒? | 最後結束時間 − 最早開始時間 | 完成的步驟中 `max(end_time) − min(start_time)` |
-| `longest_step` | single_choice | 以下哪個步驟花的時間最長? | 耗時最長的步驟。當前兩名的耗時相差在 20% 以內時省略此題(384 份報告中有 271 份含此題) | 完成的步驟中 `end_time − start_time` 最大者;選項同 `first_step` |
+| `longest_step` | single_choice | 以下哪個步驟花的時間最長? | 耗時最長的步驟。當前兩名的耗時相差在 20% 以內時省略此題(350 份報告中有 255 份含此題) | 完成的步驟中 `end_time − start_time` 最大者;選項 = 答案 + 從其餘完成的步驟隨機挑 7 個,共 8 個 |
 
-`skipped_steps`、`first_step`、`longest_step` 的選項為食譜步驟加上 2 個誘餌,順序已打亂。
-`skipped_steps` 的選項包含所有步驟(含遺漏的);`first_step`、`longest_step` 只含完成的步驟。
+`skipped_steps`、`longest_step` 的選項**固定為 8 個**真實步驟,順序已打亂。
+這樣食譜的步驟數不會影響選項數,也就不會成為影響模型表現的潛在變因。
+
+- `skipped_steps`:8 個選項包含**全部**遺漏步驟,不足的部分從其餘步驟隨機補足(可能包含完成的步驟)。
+  資料集中遺漏步驟最多 6 個,所以 8 個名額一定放得下。
+- `longest_step`:8 個選項只取有影像的步驟,其中 1 個是答案,其餘 7 個隨機挑選。
+- 有影像的步驟少於 8 個的錄影(共 19 份)無法湊滿選項,**整份報告已從資料集中移除**。
+- 另有 15 份報告被移除:這些錄影的步驟名稱(例如重複步驟的「(1st time)」,或與 task graph 寫法不同的步驟)在 `recipe` 食譜文字中找不到對應,題目與食譜清單會對不上。
+- 因此報告數從 384 降為 350。
 
 ### 步驟層級題目
 
-步驟層級題目分兩部分:
+食譜中的每個步驟,固定問下表的 3 題(遺漏步驟與 `Other` 步驟的例外見下文)。
 
-- **真實步驟:** 食譜中的每個真實步驟,固定問下表的 3 題。
-- **不存在的步驟:** 在所有真實步驟之外,另外加入 2 個影片中根本沒有的步驟(誘餌,見下文
-  「誘餌(decoy)步驟」),同樣固定問這 3 題。這 2 個步驟共 6 題,**答案全部是 `"not_visible"`**。
-
-| 欄位 id | 類型 | 問題 | 真實步驟的答案 | 來自哪部分標註 |
+| 欄位 id | 類型 | 問題 | 答案 | 來自哪部分標註 |
 | --- | --- | --- | --- | --- |
 | `stepNN_correct` | bool | 步驟「…」是否做對了? | 若步驟沒有錯誤標籤則為 `true` | 該步驟的 `errors[]` 是否為空;題目中的步驟名來自 `description` |
 | `stepNN_error_types` | multi_choice | 步驟「…」犯了哪些錯誤? | 錯誤標籤,無錯誤則為 `[]` | 該步驟 `errors[].tag` 對應到 A–G 選項 |
 | `stepNN_duration` | seconds | 步驟「…」花了多少秒? | 結束 − 開始 | 該步驟的 `end_time − start_time` |
 
-不存在的步驟沿用同樣的欄位、問題與選項,三題的答案都是 `"not_visible"`。它們的步驟文字取自**其他食譜**的步驟 `description`,不來自這支錄影的標註。
-
 `error_types` 的選項固定為以下 7 個:A Preparation(準備)、B Measurement(計量)、
 C Technique(技巧)、D Timing(時間)、E Temperature(溫度)、F Order(順序)、
 G Missing Step(遺漏步驟)。
+定義見 `input.context.error_definitions`;論文中沒有 `Other` 類別的定義,所以 `Other` 步驟不出 `error_types` 題。
 
 有兩種情況會減少步驟層級的題數:
 
 - **遺漏步驟**(`start_time = -1`,沒有影像)沒有 `duration` 題。其 `correct` 答案為 `false`,
   `error_types` 答案為 `["G"]`(Missing Step)。
-- 標為 **`Other`** 的步驟(資料集中共 8 個)沒有 `error_types` 題,因為 `Other`
+- 標為 **`Other`** 的步驟(本資料集中共 6 個)沒有 `error_types` 題,因為 `Other`
   不在選項之內。
 
 每個真實步驟的 ground truth 證據都附上原始的 `step_id`、`start_time`、`end_time`、`errors`,方便回頭對照原始標註。
@@ -86,6 +86,8 @@ G Missing Step(遺漏步驟)。
 | --- | --- |
 | 報告 id `cc4d-<recording_id>` | `error_annotations.json` 的 `recording_id` |
 | `input.context.task_name` | `complete_step_annotations.json[<recording_id>].activity_name`(找不到時退回 `activity_id`) |
+| `input.context.recipe` | 官方 annotations 倉庫 `task_graphs/<食譜>.json`(步驟描述與 `edges` 前置關係),不在 `error_annotations.json` 中 |
+| `input.context.error_definitions` | CaptainCook4D 論文(arXiv 2312.14556)第 3.2 節的錯誤類別定義,不在標註檔中 |
 | `time_range.end` | 完成的步驟的 `max(end_time) + 5` 秒 |
 | 影片 `<recording_id>_360p.mp4` | 以 `recording_id` 命名的 GoPro 360p 影片(非標註檔) |
 
@@ -93,83 +95,37 @@ G Missing Step(遺漏步驟)。
 
 | 類型 | 答案格式 |
 | --- | --- |
-| `single_choice` | 一個標籤:`"A"` … `"Z"`,超過 26 個選項後為 `"AA"`、`"AB"`、… |
+| `single_choice` | 一個標籤:`"A"` … `"H"`(固定 8 個選項);格式上支援超過 26 個選項後的 `"AA"`、`"AB"`、… |
 | `multi_choice` | 一串不重複的標籤,例如 `["C", "A"]`;`[]` 表示沒有 |
 | `bool` | `true` / `false` |
 | `int` | 整數 |
 | `seconds` | 大於等於 0 的數字,四捨五入到 0.1 秒 |
-| 任何類型 | `"not_visible"`。每個欄位都允許此值(`allow_not_visible: true`),因此陷阱欄位不會顯得特別 |
-
-### 誘餌(decoy)步驟
-
-誘餌是**影片中沒有做、但被當成這份報告的步驟來發問**的假步驟,用來測試模型會不會幻覺。
-每份報告固定 2 個:1 個 obvious、1 個 plausible。
-
-#### 1. 產生方式
-
-由 `scripts/build_cc4d_dense.py` 的 `pick_decoys()` 在每份報告產生一次:
-
-1. **建立候選池:** 取資料集中**其他食譜**(`activity_id` 不同)的所有步驟,文字為
-   `error_annotations.json` 的 `step_annotations[].description`(去掉 `Rinse-` 這類前綴)。
-   誘餌是原標註者寫的真實步驟,腳本不會組合或生成文字。
-2. **計算詞彙重疊:** 對每個候選,計算它與本食譜所有步驟用詞的重疊數。
-   詞的定義:英文字母組成、長度大於 2、且不在停用詞表(the, and, with, into, for, about,
-   until, from, over, onto, each)內。
-3. **各挑一個:**
-   - **obvious:** 從重疊數為 0 的候選中隨機挑一個(與本食譜沒有任何共同的實詞)。
-     例如在 Microwave Egg Sandwich 中出現「Add chopped cilantro to the bowl」。
-   - **plausible:** 候選依重疊數由高到低排序,從前 10 名中隨機挑一個。
-     例如「Add 1/3 cup cheddar cheese to a microwave-safe cup」。
-
-隨機種子為 `{seed}:{recording_id}`,相同 seed 與錄影一定得到相同誘餌。
-
-#### 2. 篩選門檻
-
-候選池在上述步驟 2 之前,會先排除與本食譜**任一步驟過於相似**的候選:
-
-- **相似度:** 兩段文字的詞集合(定義同上)的 Jaccard 相似度 = 交集 ÷ 聯集。
-- **門檻:** `NEAR_DUP = 0.6`。相似度 ≥ 0.6 的候選一律排除,完全相同的文字也包含在內。
-- **比較範圍:** 本食譜在**所有錄影**中出現過的步驟,不只是當前這一支。
-- **目的:** 避免誘餌其實是本食譜某步驟的改寫(例如只差冠詞、標點或 other/another),
-  否則模型看到影片做了這步卻答「沒做」,會被誤判為幻覺。
-- **效果:** 加入門檻前,有 11 份報告的 plausible 誘餌與真實步驟的相似度 ≥ 0.8
-  (例如「crack one egg in a bowl」對「Crack one egg in the bowl」)。加入後,全部 384 個
-  plausible 誘餌與本食譜步驟的最高相似度為 0.57。
-- **限制:** 門檻只看詞彙,不看語意。像「Add 1/4 tsp salt」與「Add 1/3 tsp salt」這類只差量詞的步驟,
-  相似度可能低於門檻而仍被抽到。plausible 的擬真程度尚未經人工逐一檢查。
-
-#### 3. 運用方式
-
-誘餌在報告中有兩種用法:
-
-| 用在哪 | 怎麼用 | 正確答案 |
-| --- | --- | --- |
-| 步驟層級題目 | 與真實步驟使用相同的 3 題 `correct`、`error_types`、`duration` | 三題皆為 `"not_visible"` |
-| 報告層級的選項 | 文字加入 `skipped_steps`、`first_step`、`longest_step` 的選項清單 | `skipped_steps`:誘餌是正確答案之一(它們沒被做過);`first_step`、`longest_step`:誘餌不會是答案 |
-
-- **選項清單:** `skipped_steps` 的選項是本食譜所有步驟(含遺漏的)加 2 個誘餌;
-  `first_step`、`longest_step` 的選項是有影像的步驟加 2 個誘餌。誘餌必須出現在每一個選項清單中,
-  否則「沒出現在選項裡的步驟」就會暴露誘餌身分。
-- **欄位 id 與順序:** 誘餌的步驟區塊與真實步驟一起打亂,再統一重新編號為 `step01`…`stepNN`,
-  所以從欄位 id 或順序看不出哪些是誘餌。
-- **記錄位置:** 誘餌的種類(obvious / plausible)、原始 `step_id` 與來源食譜名稱只記在
-  ground truth 的證據(`evidence.decoy`、`evidence.step_id`、`evidence.source_activity`),
-  以及報告的 `metadata.decoys`,模型看不到。評估時可據此分開統計兩種誘餌的表現。
-- **數量:** 每份報告 2 個誘餌 × 3 題 = 6 題,全部 384 份共 2,304 題,即 README 中
-  `"not_visible"` 目標的總數。
 
 ### 防止洩漏答案的設計
 
 - **步驟以描述命名,絕不使用編號。** CaptainCook4D 的 `step_id` 順序並不是食譜應該執行的順序。
 - **重複的描述會加上序數。** 當食譜中某個步驟重複出現(例如攪拌兩次),各份副本會依實際執行的先後標示為「(1st time)」、「(2nd time)」。
-- **步驟區塊會被打亂,並在打亂後重新編號為 `step01`…`stepNN`。** 這樣欄位順序不會暴露真實的步驟順序,欄位 id 也不會暴露哪些是誘餌。原始的 `step_id` 只保留在 ground truth 的證據中。
-- **每份報告有兩個來自其他食譜的誘餌步驟。** 產生方式、篩選門檻與用法見下一節。
+- **步驟區塊會被打亂,並在打亂後重新編號為 `step01`…`stepNN`。** 這樣欄位順序不會暴露真實的步驟順序。原始的 `step_id` 只保留在 ground truth 的證據中。
+
+> **關於幻覺測試:** 早期版本每份報告含 2 個來自其他食譜的誘餌步驟(答案為 `"not_visible"`)。
+> 資料集預設會提供食譜(`recipe`),誘餌不在食譜清單中,一眼就能認出,已失去測試意義,**現已取消**。
+> 「模型是否把沒做的步驟說成做了」改由 `skipped_steps` 與 `Missing Step` 測試。
 
 ## 模型的輸入
 
 - **影片:** `<recording_id>_360p.mp4`,從 0 秒傳送到最後一個已標註步驟之後 5 秒(`time_range`)。
-- **背景資訊:** `task_name`,即食譜名稱。只有在實驗白名單允許時才會傳送。
-- **不另外提供標準步驟清單。** 食譜的步驟只會以步驟題選項的形式出現。
+- **背景資訊(`input.context`):** 資料集預設提供三個欄位,實驗必須在 `prompt.context_keys`
+  中列出才會真的給模型,例如 `context_keys: [task_name, error_definitions, recipe]`:
+  - `task_name`:食譜名稱。
+  - `error_definitions`:`error_types` 七個類別(Preparation、Measurement、Technique、Timing、
+    Temperature、Order、Missing Step)的定義,英文,每個類別一行。沒有這個欄位時,模型只看得到類別名稱。
+  - `recipe`:該食譜的步驟清單與每個步驟的前置步驟。內容取自 CaptainCook4D 官方 annotations
+    倉庫的 task graph。每一行是一個步驟的描述,後面以 `(after: …)` 列出必須先完成的步驟。
+    沒有 `after` 的步驟可在任何時間做,互不依賴的步驟可以任意先後。
+    清單按原始 `step_id` 排序,不帶步驟編號,所以清單順序本身不是正確順序。
+- **正確順序是偏序,不是唯一序列。** 同一食譜的無錯誤錄影順序各不相同,因為許多步驟互不依賴。
+- **沒有「每個步驟的正確做法」。** 食譜只有每步一句描述,沒有更詳細的說明。
+  Measurement、Timing、Temperature 的規格通常寫在描述裡;Technique、Preparation 沒有明確標準。
 
 ## 資料分布
 
@@ -177,15 +133,15 @@ G Missing Step(遺漏步驟)。
 
 | | 數值 |
 | --- | --- |
-| 報告數(錄影數) | 384 |
-| 食譜數 | 24(每個食譜 12–20 支錄影) |
-| 片長(分鐘) | 中位數 13.1,平均 14.5,範圍 3.3–41.1 |
-| 傳送的影片總長 | 93.1 小時 |
-| 每份報告的食譜步驟數 | 中位數 14,平均 14.8,範圍 7–26 |
-| 至少有一個錯誤的報告 | 220(57%) |
-| 每份報告的錯誤數 | 中位數 2,平均 5.1,最大 23 |
-| 有順序違規的報告 | 117 |
-| 有被跳過步驟的報告 | 140(共 285 個被跳過的步驟) |
+| 報告數(錄影數) | 350(原 384 份中,移除 19 份有影像步驟少於 8 個者,再移除 15 份步驟名稱與食譜文字對不上者) |
+| 食譜數 | 23(每個食譜 11–18 支錄影) |
+| 片長(分鐘) | 中位數 13.6,平均 15.0,範圍 3.9–41.1 |
+| 傳送的影片總長 | 87.2 小時 |
+| 每份報告的食譜步驟數 | 中位數 15,平均 15.1,範圍 9–25 |
+| 至少有一個錯誤的報告 | 192(55%) |
+| 每份報告的錯誤數 | 中位數 1,平均 4.9,最大 23 |
+| 有順序違規的報告 | 100 |
+| 有被跳過步驟的報告 | 121(共 240 個被跳過的步驟) |
 
 片長為 `time_range.end`,即最後一個已標註步驟的結束時間加 5 秒。完整影片檔可能稍長。
 
@@ -193,57 +149,57 @@ G Missing Step(遺漏步驟)。
 
 | | 數值 |
 | --- | --- |
-| 總題數 | 21,300 |
-| 每份報告 | 中位數 54,平均 55.5,範圍 30–87 |
-| 公式 | 3 ×(步驟數 + 2 個誘餌)+ 5 或 6,再減去每個遺漏步驟 1 題與每個 `Other` 步驟 1 題 |
+| 總題數 | 17,291 |
+| 每份報告 | 中位數 47,平均 49.4,範圍 31–80 |
+| 公式 | 3 ×(步驟數)+ 4 或 5,再減去每個遺漏步驟 1 題與每個 `Other` 步驟 1 題 |
 
 | 每份報告題數 | 報告數 |
 | --- | --- |
-| 30–39 | 34 |
-| 40–49 | 120 |
-| 50–59 | 89 |
-| 60–69 | 96 |
-| 70–79 | 20 |
-| 80–87 | 25 |
+| 30–39 | 111 |
+| 40–49 | 74 |
+| 50–59 | 86 |
+| 60–69 | 49 |
+| 70–79 | 22 |
+| 80 | 8 |
 
 ### 題目類型
 
 | 類型 | 數量 | 占比 |
 | --- | --- | --- |
-| bool | 6,852 | 32.2% |
-| multi_choice | 6,844 | 32.1% |
-| seconds | 6,565 | 30.8% |
-| single_choice | 655 | 3.1% |
-| int | 384 | 1.8% |
+| bool | 5,645 | 32.6% |
+| multi_choice | 5,639 | 32.6% |
+| seconds | 5,402 | 31.2% |
+| single_choice | 255 | 1.5% |
+| int | 350 | 2.0% |
 
 | 欄位 | 數量 |
 | --- | --- |
-| `stepNN_correct` | 6,468(5,700 真實 + 768 誘餌) |
-| `stepNN_error_types` | 6,460 |
-| `stepNN_duration` | 6,181(5,413 真實 + 768 誘餌) |
-| `skipped_steps`、`order_violated`、`num_steps_with_errors`、`first_step`、`total_duration` | 各 384 |
-| `longest_step` | 271 |
+| `stepNN_correct` | 5,295 |
+| `stepNN_error_types` | 5,289 |
+| `stepNN_duration` | 5,052 |
+| `skipped_steps`、`order_violated`、`steps_done`、`total_duration` | 各 350 |
+| `longest_step` | 255 |
 
 ### 答案
 
 | | 數值 |
 | --- | --- |
-| `"not_visible"` 目標(誘餌題) | 2,304(10.8%,每份報告 6 題) |
-| 做對的真實步驟(`correct = true`) | 5,700 中的 3,736(65.5%) |
-| `error_types` 答案依標籤數分布 | 0 個標籤:3,736;1 個:1,437;2 個:454;3 個:64;4 個:1 |
-| 錯誤標籤頻率 | Order 791、Technique 498、Preparation 394、Measurement 331、Missing Step 285、Timing 177、Temperature 65 |
-| 步驟耗時(秒) | 中位數 35.0,十分位數 9.8 / 15.7 / 21.6 / 28.1 / 35.0 / 44.1 / 57.6 / 76.9 / 118.3,範圍 1.0–1068.2 |
-| 選項數(步驟清單) | 7–28;只有 `cc4d-23_5 first_step` 的答案是兩個字母(`AA`) |
+| 做對的真實步驟(`correct = true`) | 5,295 中的 3,597(67.9%) |
+| `error_types` 答案依標籤數分布 | 0 個標籤:3,597;1 個:1,244;2 個:390;3 個:57;4 個:1 |
+| 錯誤標籤頻率 | Order 690、Technique 441、Preparation 339、Measurement 279、Missing Step 240、Timing 153、Temperature 57 |
+| 步驟耗時(秒) | 中位數 34.85,十分位數 9.9 / 15.8 / 21.5 / 28.0 / 34.9 / 44.0 / 57.3 / 77.2 / 119.5,範圍 1.0–1068.2 |
+| 選項數(步驟清單) | 固定 8 個,答案標籤皆為單一字母 A–H |
 
 ## 已知限制
 
-- **對每個步驟都回答「正確、無錯誤」是很強的基準線。** 對真實步驟而言,`correct` 可達 65.5%,
-  `error_types` 可達 65.6%(5,692 中的 3,736)。回報準確率時請與此基準線比較。
+- **對每個步驟都回答「正確、無錯誤」是很強的基準線。** 對真實步驟而言,`correct` 可達 67.9%,
+  `error_types` 可達 68.0%(5,289 中的 3,597)。回報準確率時請與此基準線比較。
 - **`Order` 是最常見的錯誤標籤,** 但判斷它需要整支影片的順序資訊,而不是單一步驟。
-- **明顯的誘餌光看食譜名稱就能辨認。** 擬真的誘餌才是真正的考驗。擬真程度來自詞彙重疊的啟發式方法,尚未經人工檢查。
+- **沒有幻覺測試題。** 資料集不含誘餌步驟,只能用 `skipped_steps` 與 `Missing Step` 間接檢查模型是否把沒做的步驟說成做了。
 - **非常短的步驟是以標註雜訊來評分。** 耗時在 max(2 秒, 目標值的 25%) 之內視為正確
-  (見 `docs/scoring_rules.md`)。對於 395 個短於 8 秒的真實步驟,這相當於 2 秒的下限,
+  (見 `docs/scoring_rules.md`)。對於 358 個短於 8 秒的真實步驟,這相當於 2 秒的下限,
   與標註邊界雜訊的大小相近。
 - **腳本已處理的標註怪異之處:**
-  - 53 支錄影將同一個 `step_id` 用於兩個不同的描述。
+  - 38 支錄影有重複的步驟描述(不同 `step_id` 但文字相同),以「(1st time)」等序數區分。
+  - 1 支錄影將同一個 `step_id` 用於兩個不同的描述。
   - 部分步驟的時間戳為 −1,卻沒有 Missing Step 標籤;這些步驟不會產生耗時題。
