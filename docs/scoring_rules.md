@@ -3,13 +3,14 @@
 How each answer type is judged, from parsed answer to metrics. Field and target formats
 are defined in `docs/data_contract.md`.
 
-**Status (2026-10-08):**
+**Status (2026-10-13):**
 
-- Only `single_choice` is implemented, in `evaluation/scorers.py`. The other types and
-  `not_visible` are decided here, but no code exists yet. Until it does, `video-report
+- Only `single_choice` is implemented, in `evaluation/scorers.py`. The other types
+  are decided here, but no code exists yet. Until it does, `video-report
   evaluate` refuses runs that contain them.
-- The rules below were agreed for the CaptainCook4D benchmark (`cc4d_dense_v1`). They apply
-  to any benchmark that uses these types.
+- The rules below were agreed while designing the CaptainCook4D benchmark (`cc4d_dense_v1`).
+  They apply to any benchmark that uses these types.
+- `cc4d_dense_v1` uses `bool`, `int`, `seconds`, `single_choice` and `multi_choice`.
 
 ## Principles
 
@@ -93,45 +94,28 @@ These six outcomes apply to every type and are unchanged from the current scorer
   Precision and recall can be derived later: `hits / (hits + extras)` and
   `hits / (hits + misses)`.
 
-### `not_visible` (any type with `allow_not_visible: true`)
-
-- **Valid answer:** the exact string `"not_visible"`. Any other spelling or case is invalid.
-  A field without `allow_not_visible` treats it as invalid.
-- **Primary outcome:**
-
-  | target | answer | primary outcome | also tagged as |
-  | --- | --- | --- | --- |
-  | `not_visible` | `not_visible` | correct | |
-  | `not_visible` | any valid concrete answer | incorrect | `hallucination` |
-  | concrete value | `not_visible` | incorrect | `over_abstention` |
-  | concrete value | concrete value | by the type's rule | |
-
-- For a `multi_choice` field, `[]` is a concrete answer ("no mistakes"), not
-  `not_visible`.
-
 ## Metrics to report
 
 1. **Field accuracy:** overall, per answer type, and per field kind. Examples of field kinds:
    `stepNN_correct`, `stepNN_duration`, `skipped_steps`. For CC4D, a field kind is the field
    id with the `stepNN_` prefix removed.
-2. **Hallucination rate:** among fields whose target is `not_visible`, the share answered
-   with a concrete value.
-3. **Over-abstention rate:** among fields with a concrete target, the share answered
-   `not_visible`.
-
-   Always report 2 and 3 together. Answering `not_visible` everywhere would give a
-   hallucination rate of 0.
-4. **Majority baseline per field kind:** the accuracy of always giving the most common
+2. **Majority baseline per field kind:** the accuracy of always giving the most common
    target. Report it next to the model's accuracy. Example: on CC4D, `stepNN_correct =
-   true` alone gets 65.5% on real steps.
-5. **Secondary measurements:**
+   true` alone gets about two thirds on real steps (the exact figure is in the dataset
+   README).
+3. **Secondary measurements:**
    - `int` / `seconds`: median `abs_error`, plus median `rel_error` for `seconds`.
    - `multi_choice`: total `hits` / `misses` / `extras`.
 
    Computed only over valid, concrete answers.
-6. **Format failures:** `invalid_answer` / `missing_answer` / `invalid_output` counts, per
+4. **Skipped-step misses (the hallucination check for `cc4d_dense_v1`):** `cc4d_dense_v1`
+   has no decoy steps, so the check is `skipped_steps`. A target label the model did not
+   answer is a step that was not done but that the model treated as done. Report these
+   `misses` and the share `misses / (hits + misses)` on their own, separately from `extras`
+   (steps that were done but called skipped). Computed only over valid answers.
+5. **Format failures:** `invalid_answer` / `missing_answer` / `invalid_output` counts, per
    type.
-7. **Per-option breakdown for `multi_choice` fields with a fixed option set** (CC4D
+6. **Per-option breakdown for `multi_choice` fields with a fixed option set** (CC4D
    `stepNN_error_types`, whose options are the 7 error tags). For each option, report:
    - **recall:** among fields whose target contains the option, the share whose answer also
      contains it. This measures missed errors.
