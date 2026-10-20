@@ -56,3 +56,47 @@ checkpoints, token usage, cost, latency, paired scores and full logs. Base64
 request bodies and prepared media remain on the VM and are excluded from the
 compact evidence ZIP. All generated data lives under ignored `outputs/`; the
 source benchmark is unchanged.
+
+## Integrity fixes and experiment identification
+
+`verify_derived_ground_truth` compares every selected target and target text with
+`data/hd_epic_q40_v1/ground_truth.jsonl` before inference. The derived file's hash
+is saved in `pilot_plan.json` and checked again before scoring. Intentional
+alternative ground truth remains possible through the separate offline evaluator.
+
+New prepared clips live in `pilot/media/verified-v1/`; legacy media and snapshots
+are left intact. Clips are written to a temporary file, fully decoded, checked
+against the requested duration, and published with an atomic rename and SHA-256
+receipt. Reuse checks the receipt/hash each time and decodes on first use in a
+process. Missing receipts, partial files, decode failures and changed hashes cause
+reconstruction from the original video. An invalid reconstruction stops before HTTP.
+
+Snapshot verification hashes the saved config representation, so old configs
+without `batch_size` and newer configs with explicit `batch_size: null` both
+verify against their original fingerprints. Resume compares current normalized
+configs only after that integrity check. No historical file or fingerprint is
+rewritten. Reviewed package upgrades still require `--allow-code-change`; this
+permits code changes, never changed frozen model inputs.
+
+Cross-run result import/deduplication is deliberately not implemented. Identify
+results by experiment/run directory, call ID, requested field IDs, and the frozen
+method/batch-size configuration. The same run already resumes successful calls
+without sending them again. A newly created experiment is a separate execution;
+choose and combine its results explicitly during analysis.
+
+## Origin of overlapping-event questions
+
+The two `put carrot` questions already exist as distinct entries
+`fine_grained_action_localization_6239` and `_4267` in the
+[official VQA JSON](https://github.com/hd-epic/hd-epic-annotations/blob/9a47a428a90d83a2fd5d87356afe97bef5649989/vqa-benchmark/fine_grained_action_localization.json).
+Their original input windows are 04:32.300–09:41.860 and
+07:08.089–13:34.440 on `P01-20240203-130505`. Both correct choices refer to
+08:39.490–08:39.730, with different distractors and answer indices (D/E).
+
+`build_hd_epic_dense.py` reads these existing records, preserves choices and
+`correct_idx`, and converts timestamps. It does not generate new questions.
+It collects both records into one larger report without event deduplication;
+that assembly exposes cross-question hints absent from independent calls. The
+source records do not establish whether the benchmark creators intentionally
+sampled the same event twice or which annotation-generation step produced it.
+The original data and the frozen question selection are unchanged by this fix.

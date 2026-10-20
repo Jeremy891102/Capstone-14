@@ -17,20 +17,32 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from prepare_hd_epic_baseline import PILOT_IDS, SYSTEM, dump, sha
+from video_report.benchmarks.baseline import validate_pilot_budget, verify_derived_ground_truth
 from video_report.evaluation.evaluate import evaluate_run
 from video_report.pipeline import check_resume_compatibility, create_run, execute_run
+from video_report.providers.base import PermanentProviderError
 from video_report.providers.http_api import JSONHTTP
-from video_report.providers.media import LocalMedia
+from video_report.providers.media import LocalMedia, PreparedClipCache, validate_prepared_clip
 from video_report.providers.vertex_gemini import VertexGeminiProvider
 from video_report.run_store import RunDir, call_key
 
 ORDER = ["E5", "E1", "E2", "E3", "E4", "E6_homogeneous", "E6_mixed"]
 
 
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--freeze", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument(
+        "--allow-code-change",
+        action="store_true",
+        help="Allow reviewed package changes; frozen model inputs must still match",
+    )
     parser.add_argument("--max-estimated-cost-usd", type=float, default=1.50)
     args = parser.parse_args()
     repo = Path(__file__).resolve().parents[1]
@@ -49,29 +61,53 @@ def main():
     os.environ.update(env)
     manifest = json.loads((freeze / "selection_manifest.json").read_text())
     for name, digest in manifest["source_hashes"].items():
-        assert sha(repo / "data/hd_epic_q40_v1" / name) == digest
-    assert manifest["prompt_sha256"] == hashlib.sha256(SYSTEM.encode()).hexdigest()
+        require(sha(repo / "data/hd_epic_q40_v1" / name) == digest, "source data changed")
+    require(
+        manifest["prompt_sha256"] == hashlib.sha256(SYSTEM.encode()).hexdigest(),
+        "system prompt changed",
+    )
     runs = {}
     costs = {}
     plan = {}
     hashes = {}
+    gt_hashes = {}
+    resume_notes = {}
     for e in ORDER:
-        assert sha(freeze / "requests" / f"{e}.jsonl") == manifest["request_file_hashes"][e]
+        require(
+            sha(freeze / "requests" / f"{e}.jsonl") == manifest["request_file_hashes"][e],
+            "frozen requests changed",
+        )
+        gt_hashes[e] = verify_derived_ground_truth(
+            repo / "data/hd_epic_q40_v1/ground_truth.jsonl",
+            freeze / "data" / e / "ground_truth.jsonl",
+            freeze / "data" / e / "reports.jsonl",
+        )
+        resume_notes[e] = []
         config = freeze / "experiments" / e / "pilot.yaml"
         path = root / "runs" / e
         if path.exists():
             run = RunDir(path)
-            check_resume_compatibility(
-                run, config_path=config, video_root=None, allow_code_change=False, environ=env
+            resume_notes[e] = check_resume_compatibility(
+                run,
+                config_path=config,
+                video_root=None,
+                allow_code_change=args.allow_code_change,
+                environ=env,
             )
         else:
             run = create_run(config, root / "runs", run_id=e, environ=env)
         reqs = list(run.load_requests().values())
-        assert all(q.report_id in PILOT_IDS and q.system == SYSTEM for q in reqs)
+        require(
+            all(q.report_id in PILOT_IDS and q.system == SYSTEM for q in reqs),
+            "request outside pilot scope",
+        )
         full = [
             json.loads(x) for x in (freeze / "requests" / f"{e}.jsonl").read_text().splitlines()
         ]
-        assert [q.to_json() for q in reqs] == [q for q in full if q["report_id"] in PILOT_IDS]
+        require(
+            [q.to_json() for q in reqs] == [q for q in full if q["report_id"] in PILOT_IDS],
+            "pilot inputs differ from freeze",
+        )
         hashes[e] = run.verify_snapshot()
         plan[e] = len(reqs)
         it = sum(
@@ -81,9 +117,8 @@ def main():
         ot = sum(1.2857142857 + 13.1142857143 * len(q.field_ids) for q in reqs)
         costs[e] = (it * 0.3 + ot * 2.5) / 1e6
         runs[e] = run
-    assert sum(plan.values()) == 124
     estimate = sum(costs.values())
-    assert estimate <= args.max_estimated_cost_usd, "Pilot exceeds local preflight estimate limit"
+    validate_pilot_budget(sum(plan.values()), estimate, args.max_estimated_cost_usd)
     dump(
         root / "pilot_plan.json",
         {
@@ -96,6 +131,7 @@ def main():
             "note": "Estimate guard, not a provider billing cap; one attempt, no automatic retries",
             "execute_order": ORDER,
             "snapshot_fingerprints": hashes,
+            "derived_ground_truth_sha256": gt_hashes,
             "runner_sha256": sha(Path(__file__)),
         },
     )
@@ -107,7 +143,7 @@ def main():
     original_clip = LocalMedia.clip
     original_post = JSONHTTP.post
     active = {}
-    cache = {}
+    clip_store = PreparedClipCache(root / "media" / "verified-v1")
     total_new = 0
     (root / "media").mkdir(exist_ok=True)
 
@@ -117,19 +153,25 @@ def main():
 
     def clip(self, video, fps):
         start = time.monotonic()
-        key = (*self._key(video, fps), self.height)
-        digest = hashlib.sha256(json.dumps(key).encode()).hexdigest()
-        target = root / "media" / f"{digest}.mp4"
-        if key not in cache:
-            if not target.exists():
-                p = original_clip(self, video, fps)
-                shutil.copy2(p, target)
-            cache[key] = sha(target)
+        key = (*self._key(video, fps), self.height, "h264-crf30-veryfast-v1")
+        try:
+            target = clip_store.get(
+                key,
+                lambda: original_clip(self, video, fps),
+                lambda p: validate_prepared_clip(
+                    p, video.end_s - video.start_s, fps, self.timeout_s
+                ),
+            )
+        except ValueError as exc:
+            raise PermanentProviderError(
+                "invalid_media", "prepared video validation failed"
+            ) from exc
+        digest = sha(target)
         req = active["request"]
         active["timing"]["media"].append(
             {
                 "call_id": req.call_id,
-                "clip_sha256": cache[key],
+                "clip_sha256": digest,
                 "clip_path": str(target),
                 "bytes": target.stat().st_size,
                 "preprocessing_or_cache_lookup_s": time.monotonic() - start,
@@ -145,12 +187,15 @@ def main():
         run = runs[e]
         key = call_key(req.call_id)
         # Never send anything outside the frozen pilot, even if an adapter is changed.
-        assert req.to_json() == next(
-            q.to_json() for q in run.load_requests().values() if q.call_id == req.call_id
+        require(
+            req.to_json() == run.load_requests()[req.call_id].to_json(),
+            "request changed before HTTP",
         )
-        assert total_new < 124 and timing["new_api_attempts"] < plan[e]
+        require(
+            total_new < 124 and timing["new_api_attempts"] < plan[e], "pilot API call limit reached"
+        )
         payload = json.dumps(body, ensure_ascii=False)
-        assert len(payload.encode()) <= max_bytes
+        require(len(payload.encode()) <= max_bytes, "API payload limit exceeded")
         (active["directory"] / "wire_inputs" / f"{key}.json").write_text(payload + "\n")
         total_new += 1
         timing["new_api_attempts"] += 1
@@ -204,12 +249,17 @@ def main():
                 run,
                 mode=mode,
                 retry_failed=False,
+                session_notes=resume_notes[e],
                 on_call_done=lambda c: print("  " + c["status"], flush=True),
             )
             timing["state"] = result.state
         finally:
             timing["execution_wall_s"] = time.monotonic() - start
             dump(directory / "timing.json", timing)
+        require(
+            sha(freeze / "data" / e / "ground_truth.jsonl") == gt_hashes[e],
+            "derived ground truth changed during inference",
+        )
         evaluation, metrics = evaluate_run(run.path, freeze / "data" / e / "ground_truth.jsonl")
         shutil.copy2(evaluation / "smoke_test.log", directory / "smoke_test.log")
         dump(directory / "metrics.json", metrics)
@@ -234,10 +284,13 @@ def main():
             f"{e}: {metrics['fields']['field_accuracy']}; cost ${metrics['usage']['cost']}",
             flush=True,
         )
-        assert result.state == "completed" and good, (
-            "Pilot failed: inspect saved evidence before continuing"
+        require(
+            result.state == "completed" and good,
+            "Pilot failed: inspect saved evidence before continuing",
         )
-        assert metrics["fields"]["valid_answer_rate"]["value"] == 1
+        require(
+            metrics["fields"]["valid_answer_rate"]["value"] == 1, "pilot returned invalid answers"
+        )
     print("TWO-REPORT PILOT COMPLETE — full baseline has NOT been executed.", flush=True)
 
 

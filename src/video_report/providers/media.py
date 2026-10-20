@@ -3,13 +3,18 @@
 from __future__ import annotations
 
 import base64
+import json
 import math
+import os
+import re
 import shutil
 import subprocess
 import tempfile
 import threading
+from collections.abc import Callable
 from pathlib import Path
 
+from video_report.io_utils import atomic_write_json, fingerprint, sha256_file
 from video_report.providers.base import ModelRequest, PermanentProviderError, VideoInput
 
 
@@ -143,3 +148,80 @@ def encode_local(path: Path, max_bytes: int) -> str:
     if not raw or len(raw) > max_bytes:
         raise PermanentProviderError("media_size", "empty media or payload limit exceeded")
     return base64.b64encode(raw).decode("ascii")
+
+
+class PreparedClipCache:
+    """Persist validated clips atomically; reject changed or unsealed cached files."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+        self.root.mkdir(parents=True, exist_ok=True)
+        self._validated: dict[Path, str] = {}
+        self._lock = threading.Lock()
+
+    def get(
+        self,
+        key: tuple[object, ...],
+        prepare: Callable[[], Path],
+        validate: Callable[[Path], None],
+    ) -> Path:
+        with self._lock:
+            target = self.root / f"{fingerprint(key)}.mp4"
+            receipt = target.with_suffix(".json")
+            try:
+                record = json.loads(receipt.read_text())
+                digest = sha256_file(target)
+                if isinstance(record, dict) and record.get("sha256") == digest:
+                    if self._validated.get(target) != digest:
+                        validate(target)
+                        self._validated[target] = digest
+                    return target
+            except (OSError, ValueError):
+                pass  # Missing, partial or changed cache: reconstruct from the source.
+            fd, name = tempfile.mkstemp(prefix=".preparing-", suffix=".mp4", dir=self.root)
+            os.close(fd)
+            temporary = Path(name)
+            try:
+                shutil.copyfile(prepare(), temporary)
+                validate(temporary)
+                digest = sha256_file(temporary)
+                os.replace(temporary, target)
+                atomic_write_json(receipt, {"sha256": digest})
+                self._validated[target] = digest
+                return target
+            finally:
+                temporary.unlink(missing_ok=True)
+
+
+def validate_prepared_clip(path: Path, duration_s: float, fps: float, timeout_s: float) -> None:
+    """Fully decode the video and check its duration before publishing/reusing a clip."""
+    import imageio_ffmpeg
+
+    try:
+        result = subprocess.run(
+            [
+                imageio_ffmpeg.get_ffmpeg_exe(),
+                "-nostdin",
+                "-xerror",
+                "-i",
+                str(path),
+                "-map",
+                "0:v:0",
+                "-an",
+                "-f",
+                "null",
+                "-",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout_s,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError("prepared clip could not be validated") from exc
+    match = re.search(r"Duration: (\d+):(\d+):([\d.]+)", result.stderr)
+    frames = re.findall(r"frame=\s*(\d+)", result.stderr)
+    if result.returncode or not match or not frames or int(frames[-1]) == 0:
+        raise ValueError("prepared clip does not decode as video")
+    duration = int(match[1]) * 3600 + int(match[2]) * 60 + float(match[3])
+    if abs(duration - duration_s) > max(0.25, 2 / fps):
+        raise ValueError("prepared clip duration does not match the requested window")
