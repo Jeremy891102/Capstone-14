@@ -17,6 +17,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+import yaml
+
 from prepare_hd_epic_baseline import EXPECTED, PILOT_IDS, SYSTEM, dump, sha
 from video_report.benchmarks.baseline import validate_pilot_budget, verify_derived_ground_truth
 from video_report.evaluation.evaluate import evaluate_run
@@ -24,7 +26,12 @@ from video_report.io_utils import atomic_write_json, sha256_file
 from video_report.pipeline import check_resume_compatibility, create_run, execute_run
 from video_report.providers.base import PermanentProviderError
 from video_report.providers.http_api import JSONHTTP
-from video_report.providers.media import LocalMedia, PreparedClipCache, validate_prepared_clip
+from video_report.providers.media import (
+    PREPARED_CLIP_VERSION,
+    LocalMedia,
+    PreparedClipCache,
+    validate_prepared_clip,
+)
 from video_report.providers.vertex_gemini import VertexGeminiProvider
 from video_report.run_store import RunDir, call_key
 
@@ -38,6 +45,13 @@ def require(condition, message):
 
 def verify_media_inputs(run, requests, digest_cache):
     """Seal original video bytes before first inference; refuse changed-media resume."""
+    receipt = run.path / "media_inputs.json"
+    recipe = {"version": PREPARED_CLIP_VERSION}
+    if receipt.exists():
+        require(
+            json.loads(receipt.read_text()).get("recipe") == recipe,
+            "media recipe changed; keep historical results and create a new run",
+        )
     fingerprints = {}
     for request in requests:
         for video in request.videos:
@@ -48,22 +62,49 @@ def verify_media_inputs(run, requests, digest_cache):
             if key not in digest_cache:
                 digest_cache[key] = sha256_file(path)
             fingerprints[str(path)] = {"sha256": digest_cache[key], "bytes": stat.st_size}
-    receipt = run.path / "media_inputs.json"
+    sealed = {"recipe": recipe, "videos": fingerprints}
     if receipt.exists():
-        require(json.loads(receipt.read_text()) == fingerprints, "original video bytes changed")
+        require(json.loads(receipt.read_text()) == sealed, "original video bytes changed")
     else:
         require(
             not any(c["attempts"] for c in run.read_all_calls()),
             "missing video fingerprint for existing attempts; cannot reuse results",
         )
-        atomic_write_json(receipt, fingerprints)
+        atomic_write_json(receipt, sealed)
     return fingerprints
+
+
+def select_unbilled_repairs(source_run):
+    require(not source_run.lock_is_held(), "source run is still active")
+    source_run.verify_snapshot()
+    calls = source_run.read_all_calls()
+    require(
+        all(c["status"] in {"succeeded", "failed"} for c in calls),
+        "source run has unfinished calls",
+    )
+    failed = [c for c in calls if c["status"] == "failed"]
+    require(bool(failed), "source run has no failed calls")
+    for call in failed:
+        require(bool(call["attempts"]), "failed call has no recorded attempt")
+        for attempt in call["attempts"]:
+            error = attempt.get("error") or {}
+            require(
+                error.get("kind") in {"invalid_media", "payload_limit"}
+                and error.get("outcome_unknown") is False,
+                "repair only allows known unbilled media/payload failures",
+            )
+    return {c["call_id"]: c["report_id"] for c in failed}
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--freeze", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument(
+        "--repair-failed",
+        action="store_true",
+        help="Repair only known unbilled E5 failures in a separate v2 run",
+    )
     parser.add_argument("--scope", choices=["pilot", "full"], default="pilot")
     parser.add_argument(
         "--experiments",
@@ -89,7 +130,16 @@ def main():
     )
     order = [e for e in ORDER if args.experiments is None or e in args.experiments]
     plan_name = scope if args.experiments is None else scope + "_" + "_".join(order)
-    total_calls = sum(EXPECTED[e] for e in order) if scope == "full" else 124
+    repairs = None
+    expected = EXPECTED
+    if args.repair_failed:
+        require(
+            scope == "full" and order == ["E5"], "repair requires --scope full --experiments E5"
+        )
+        repairs = select_unbilled_repairs(RunDir(freeze / "full/runs/E5"))
+        root = freeze / "repairs/E5-output-duration-v2"
+        expected = {"E5": len(repairs)}
+    total_calls = sum(expected[e] for e in order) if scope == "full" else 124
     limit = args.max_estimated_cost_usd
     if limit is None:
         limit = 60.0 if scope == "full" else 1.50
@@ -132,6 +182,16 @@ def main():
         )
         resume_notes[e] = []
         config = freeze / "experiments" / e / ("config.yaml" if scope == "full" else "pilot.yaml")
+        if repairs is not None:
+            configdir = root / "experiments" / e
+            if not configdir.exists():
+                shutil.copytree(config.parent, configdir)
+                adjusted = yaml.safe_load(config.read_text())
+                adjusted["name"] += "_repair_v2"
+                adjusted["data"]["report_ids"] = sorted(set(repairs.values()))
+                adjusted["provider"]["gemini"]["max_payload_bytes"] = 32_000_000
+                (configdir / "config.yaml").write_text(yaml.safe_dump(adjusted, sort_keys=False))
+            config = configdir / "config.yaml"
         path = root / "runs" / e
         if path.exists():
             run = RunDir(path)
@@ -160,7 +220,15 @@ def main():
         ]
         require(
             [q.to_json() for q in reqs]
-            == [q for q in full if scope == "full" or q["report_id"] in PILOT_IDS],
+            == [
+                q
+                for q in full
+                if (
+                    q["call_id"] in repairs
+                    if repairs is not None
+                    else scope == "full" or q["report_id"] in PILOT_IDS
+                )
+            ],
             "inputs differ from freeze",
         )
         hashes[e] = run.verify_snapshot()
@@ -168,7 +236,7 @@ def main():
             media_fingerprints[e] = verify_media_inputs(run, reqs, video_digests)
         plan[e] = len(reqs)
         if scope == "full":
-            require(plan[e] == EXPECTED[e], f"{e}: wrong full call count")
+            require(plan[e] == expected[e], f"{e}: wrong full call count")
         it = sum(
             64 * (q.videos[0].end_s - q.videos[0].start_s) + 114 + 254.375 * len(q.field_ids)
             for q in reqs
@@ -189,6 +257,9 @@ def main():
         root / f"{plan_name}_plan.json",
         {
             "scope": scope,
+            "repair_source_run": str(freeze / "full/runs/E5") if repairs else None,
+            "repair_call_ids": sorted(repairs) if repairs else None,
+            "prepared_clip_version": PREPARED_CLIP_VERSION,
             "pilot_ids": PILOT_IDS if scope == "pilot" else None,
             "calls": plan,
             "total_calls": total_calls,
@@ -214,7 +285,7 @@ def main():
     original_clip = LocalMedia.clip
     original_post = JSONHTTP.post
     active = {}
-    clip_store = PreparedClipCache(root / "media" / "verified-v1")
+    clip_store = PreparedClipCache(root / "media" / PREPARED_CLIP_VERSION)
     total_new = 0
     (root / "media").mkdir(exist_ok=True)
 
@@ -224,7 +295,7 @@ def main():
 
     def clip(self, video, fps):
         start = time.monotonic()
-        key = (*self._key(video, fps), self.height, "h264-crf30-veryfast-v1")
+        key = (*self._key(video, fps), self.height, PREPARED_CLIP_VERSION)
         try:
             target = clip_store.get(
                 key,

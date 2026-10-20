@@ -17,6 +17,8 @@ from pathlib import Path
 from video_report.io_utils import atomic_write_json, fingerprint, sha256_file
 from video_report.providers.base import ModelRequest, PermanentProviderError, VideoInput
 
+PREPARED_CLIP_VERSION = "h264-crf30-veryfast-output-duration-v2"
+
 
 def validate_local_ranges(request: ModelRequest) -> None:
     if request.fps is not None and (not math.isfinite(request.fps) or not 0 < request.fps <= 24):
@@ -82,10 +84,10 @@ class LocalMedia:
                     [
                         "-ss",
                         str(video.start_s),
-                        "-t",
-                        str(video.end_s - video.start_s),
                         "-i",
                         video.location,
+                        "-t",
+                        str(video.end_s - video.start_s),
                         "-vf",
                         f"scale=-2:{self.height}",
                         "-r",

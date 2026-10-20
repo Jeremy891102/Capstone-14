@@ -168,3 +168,22 @@ changing the video, FPS or resolution. This is a local admission setting, not
 a claim that a particular remote endpoint accepts that size. The regression
 test uses fake HTTP only; no extra paid calls are made. Existing snapshots
 retain their recorded 20,000,000-byte setting; do not rewrite historical runs.
+
+### Output-duration fix and E5-only recovery
+
+Clipping now applies `-t` after `-i`, limiting output duration rather than only
+input reading. Fractional-second 2 FPS regression tests previously produced seven
+frames where five were requested; the corrected output produces five. Clip cache
+keys/directories include the new `PREPARED_CLIP_VERSION`. Full media receipts now
+seal that recipe as well as original video bytes; old receipts cannot silently
+resume under a different clipping algorithm.
+
+`--scope full --experiments E5 --repair-failed` creates a separate run under
+`repairs/E5-output-duration-v2/`. It reads the original E5 checkpoints and admits
+only failed, known-unbilled `invalid_media`/`payload_limit` calls. Successful source
+calls are excluded. Prompts, question order, options, model and generation must
+match the original frozen requests exactly. Repair configs explicitly use the
+32 MB local payload limit. Add `--execute` only after offline clip/payload checks.
+Historical inputs, checkpoints and responses are preserved. Repair snapshots and
+logs identify the changed media recipe; combined analyses must retain this lineage
+and freeze the actual per-report clip bytes before future size comparisons.

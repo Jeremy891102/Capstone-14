@@ -387,3 +387,17 @@ def test_vertex_default_accepts_existing_24mb_payload_without_changing_media(vid
         assert len(seen) == 1 and 23_868_524 < seen[0] < 32_000_000
     finally:
         p.close()
+
+
+@pytest.mark.parametrize("start,end", [(0.4, 2.85), (0.411, 2.822)])
+def test_fractional_clip_stops_at_output_boundary_at_two_fps(video, start, end):
+    import math
+
+    media = LocalMedia(480, 30)
+    try:
+        clip = media.clip(VideoInput("cam", str(video), True, "video/mp4", start, end), 2)
+        frames, seconds = imageio_ffmpeg.count_frames_and_secs(str(clip))
+        assert frames == math.ceil((end - start) * 2)
+        assert seconds <= math.ceil((end - start) * 2) / 2 + 0.01
+    finally:
+        media.close()

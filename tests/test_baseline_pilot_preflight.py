@@ -327,3 +327,90 @@ def test_existing_attempts_without_video_receipt_cannot_be_reused(pilot, tmp_pat
     req = SimpleNamespace(videos=[SimpleNamespace(location=str(video), is_local=True)])
     with pytest.raises(ValueError, match="missing video fingerprint"):
         module._real_verify_media_inputs(run, [req], {})
+
+
+def test_repair_selects_only_failed_unbilled_calls(pilot):
+    module, _, _ = pilot
+    failed = {
+        "call_id": "bad",
+        "report_id": "r1",
+        "status": "failed",
+        "attempts": [{"error": {"kind": "invalid_media", "outcome_unknown": False}}],
+    }
+    good = {"call_id": "good", "report_id": "r2", "status": "succeeded", "attempts": [{}]}
+    run = SimpleNamespace(
+        lock_is_held=lambda: False,
+        verify_snapshot=lambda: {},
+        read_all_calls=lambda: [failed, good],
+    )
+    assert module.select_unbilled_repairs(run) == {"bad": "r1"}
+    failed["attempts"][0]["error"]["outcome_unknown"] = True
+    with pytest.raises(ValueError, match="known unbilled"):
+        module.select_unbilled_repairs(run)
+
+
+def test_old_media_recipe_cannot_be_reused_after_crop_change(pilot, tmp_path):
+    module, _, _ = pilot
+    run = SimpleNamespace(path=tmp_path, read_all_calls=lambda: [{"attempts": [{}]}])
+    (tmp_path / "media_inputs.json").write_text(json.dumps({"legacy_video": {"sha256": "old"}}))
+    with pytest.raises(ValueError, match="media recipe changed"):
+        module._real_verify_media_inputs(run, [], {})
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_repair_cli_cannot_send_previously_successful_calls(pilot, monkeypatch):
+    module, freeze, events = pilot
+    request_file = freeze / "requests/E5.jsonl"
+    records = [json.loads(x) for x in request_file.read_text().splitlines()]
+    target = records[1]
+    source = SimpleNamespace(
+        lock_is_held=lambda: False,
+        verify_snapshot=lambda: {},
+        read_all_calls=lambda: [
+            {
+                "call_id": target["call_id"],
+                "report_id": target["report_id"],
+                "status": "failed",
+                "attempts": [{"error": {"kind": "payload_limit", "outcome_unknown": False}}],
+            },
+            {
+                "call_id": records[0]["call_id"],
+                "report_id": records[0]["report_id"],
+                "status": "succeeded",
+                "attempts": [{}],
+            },
+        ],
+    )
+    monkeypatch.setattr(module, "RunDir", lambda path: source)
+    create = module.create_run
+
+    def subset(config, *args, **kwargs):
+        run = create(config, *args, **kwargs)
+        only = {k: q for k, q in run.load_requests().items() if k == target["call_id"]}
+        return SimpleNamespace(
+            load_requests=lambda: only, verify_snapshot=lambda: {}, load_config=run.load_config
+        )
+
+    monkeypatch.setattr(module, "create_run", subset)
+    config = freeze / "experiments/E5/config.yaml"
+    config.parent.mkdir(parents=True)
+    config.write_text("name: E5\ndata: {}\nprovider:\n  gemini: {}\n")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "runner",
+            "--freeze",
+            str(freeze),
+            "--scope",
+            "full",
+            "--experiments",
+            "E5",
+            "--repair-failed",
+        ],
+    )
+    module.main()
+    plan = json.loads((freeze / "repairs/E5-output-duration-v2/full_E5_plan.json").read_text())
+    assert plan["total_calls"] == 1
+    assert plan["repair_call_ids"] == [target["call_id"]]
+    assert not events
