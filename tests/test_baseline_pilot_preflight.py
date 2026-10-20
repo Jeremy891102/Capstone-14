@@ -9,7 +9,7 @@ import pytest
 
 
 @pytest.fixture
-def pilot(monkeypatch, tmp_path):
+def pilot(monkeypatch, tmp_path, request):
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[1] / "scripts"))
     module = importlib.import_module("run_hd_epic_baseline_pilot")
     monkeypatch.setenv("GEMINI_API_KEY", "test-placeholder-before-main")
@@ -20,6 +20,8 @@ def pilot(monkeypatch, tmp_path):
     root = tmp_path / "freeze"
     (root / "requests").mkdir(parents=True)
     sizes = {"E1": 90, "E2": 16, "E3": 8, "E4": 4, "E5": 2, "E6_homogeneous": 2, "E6_mixed": 2}
+    if getattr(request, "param", False):
+        sizes = dict(module.EXPECTED)
     runs = {}
     hashes = {}
     events = []
@@ -27,6 +29,8 @@ def pilot(monkeypatch, tmp_path):
         requests = {}
         for i in range(count):
             data = {"call_id": f"{name}-{i}", "report_id": module.PILOT_IDS[0]}
+            if getattr(request, "param", False) and i % 2:
+                data["report_id"] = "hdepic-dense-003"
             requests[data["call_id"]] = SimpleNamespace(
                 **data,
                 system=module.SYSTEM,
@@ -34,7 +38,13 @@ def pilot(monkeypatch, tmp_path):
                 videos=[SimpleNamespace(start_s=0, end_s=10)],
                 to_json=lambda d=data: d,
             )
-        runs[name] = SimpleNamespace(load_requests=lambda r=requests: r, verify_snapshot=lambda: {})
+        runs[name] = SimpleNamespace(
+            load_requests=lambda r=requests: r,
+            verify_snapshot=lambda: {},
+            load_config=lambda: SimpleNamespace(
+                execution=SimpleNamespace(concurrency=1, max_attempts=1)
+            ),
+        )
         p = root / "requests" / f"{name}.jsonl"
         p.write_text("".join(json.dumps(q.to_json()) + "\n" for q in requests.values()))
         hashes[name] = hashlib.sha256(p.read_bytes()).hexdigest()
@@ -83,5 +93,179 @@ def test_changed_gt_blocks_preflight_before_inference(pilot, monkeypatch):
     monkeypatch.setattr(module, "verify_derived_ground_truth", reject)
     monkeypatch.setattr(sys, "argv", ["pilot", "--freeze", str(root), "--execute"])
     with pytest.raises(ValueError, match="source"):
+        module.main()
+    assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_scope_freezes_all_4355_calls_without_http(pilot, monkeypatch):
+    module, root, events = pilot
+    monkeypatch.setattr(sys, "argv", ["runner", "--freeze", str(root), "--scope", "full"])
+    module.main()
+    plan = json.loads((root / "full/full_plan.json").read_text())
+    assert plan["total_calls"] == 4355
+    assert plan["calls"] == module.EXPECTED
+    assert plan["scope"] == "full"
+    assert not events and not (root / "pilot").exists()
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_budget_rejects_before_any_inference(pilot, monkeypatch):
+    module, root, events = pilot
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "runner",
+            "--freeze",
+            str(root),
+            "--scope",
+            "full",
+            "--execute",
+            "--max-estimated-cost-usd",
+            "0",
+        ],
+    )
+    with pytest.raises(ValueError, match="budget"):
+        module.main()
+    assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_requires_exact_frozen_requests(pilot, monkeypatch):
+    module, root, events = pilot
+    path = root / "requests/E5.jsonl"
+    rows = path.read_text().splitlines()
+    rows.pop()
+    path.write_text("\n".join(rows) + "\n")
+    manifest = json.loads((root / "selection_manifest.json").read_text())
+    manifest["request_file_hashes"]["E5"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (root / "selection_manifest.json").write_text(json.dumps(manifest))
+    monkeypatch.setattr(sys, "argv", ["runner", "--freeze", str(root), "--scope", "full"])
+    with pytest.raises(ValueError, match="inputs differ"):
+        module.main()
+    assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_resume_uses_own_existing_runs_and_checks_compatibility(pilot, monkeypatch):
+    module, root, events = pilot
+    sentinel = root / "pilot/keep.txt"
+    sentinel.parent.mkdir()
+    sentinel.write_text("historical pilot")
+    create = module.create_run
+    paths = []
+    for name in module.ORDER:
+        (root / "full/runs" / name).mkdir(parents=True)
+    # Fake create_run expects a config whose parent names the experiment.
+    monkeypatch.setattr(module, "RunDir", lambda path: create(path / "config.yaml", None))
+
+    def check(run, **kwargs):
+        paths.append(kwargs["config_path"])
+        return ["reviewed upgrade"]
+
+    monkeypatch.setattr(module, "check_resume_compatibility", check)
+    monkeypatch.setattr(sys, "argv", ["runner", "--freeze", str(root), "--scope", "full"])
+    module.main()
+    assert len(paths) == 7 and all(p.name == "config.yaml" for p in paths)
+    assert sentinel.read_text() == "historical pilot"
+    assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_rejects_matching_but_incomplete_scope(pilot, monkeypatch):
+    module, root, events = pilot
+    original = module.create_run
+    path = root / "requests/E5.jsonl"
+    records = [json.loads(x) for x in path.read_text().splitlines()][:-1]
+    path.write_text("".join(json.dumps(x) + "\n" for x in records))
+    manifest = json.loads((root / "selection_manifest.json").read_text())
+    manifest["request_file_hashes"]["E5"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (root / "selection_manifest.json").write_text(json.dumps(manifest))
+
+    def create(config, *args, **kwargs):
+        run = original(config, *args, **kwargs)
+        if config.parent.name == "E5":
+            reqs = run.load_requests()
+            reqs.pop(next(reversed(reqs)))
+        return run
+
+    monkeypatch.setattr(module, "create_run", create)
+    monkeypatch.setattr(sys, "argv", ["runner", "--freeze", str(root), "--scope", "full"])
+    with pytest.raises(ValueError, match="wrong full call count"):
+        module.main()
+    assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkeypatch):
+    module, root, events = pilot
+    original = module.create_run
+    http = module.JSONHTTP.post
+    generate = module.VertexGeminiProvider.generate
+    clip = module.LocalMedia.clip
+
+    def create(config, *args, **kwargs):
+        run = original(config, *args, **kwargs)
+        run.path = root / "full/runs" / config.parent.name
+        run.read_meta = lambda: {"state": "created"}
+        return run
+
+    def execute(run, **kwargs):
+        events.append((run.path.name, kwargs["retry_failed"]))
+        return SimpleNamespace(state="completed")
+
+    def evaluate(path, gt):
+        out = root / "evaluations" / path.name
+        out.mkdir(parents=True)
+        (out / "smoke_test.log").write_text("saved invalid model answer\n")
+        (out / "call_parses.jsonl").write_text(
+            json.dumps({"parse_status": "invalid_json", "extra_keys": [], "missing": ["f"]}) + "\n"
+        )
+        return out, {
+            "fields": {"field_accuracy": {"value": 0}, "valid_answer_rate": {"value": 0}},
+            "usage": {"cost": 0},
+        }
+
+    for e in module.ORDER:
+        gt = root / "data" / e / "ground_truth.jsonl"
+        gt.parent.mkdir(parents=True)
+        gt.write_text("test ground truth\n")
+    monkeypatch.setattr(
+        module, "verify_derived_ground_truth", lambda source, gt, reports: module.sha(gt)
+    )
+    monkeypatch.setattr(module, "create_run", create)
+    monkeypatch.setattr(module, "execute_run", execute)
+    monkeypatch.setattr(module, "evaluate_run", evaluate)
+    monkeypatch.setattr(
+        sys, "argv", ["runner", "--freeze", str(root), "--scope", "full", "--execute"]
+    )
+    module.main()
+    result = json.loads((root / "full/full_results.json").read_text())
+    assert len(result) == 7
+    assert all(not r["all_calls_complete_json"] for r in result)
+    assert events == [(e, False) for e in module.ORDER]
+    assert module.JSONHTTP.post is http
+    assert module.VertexGeminiProvider.generate is generate
+    assert module.LocalMedia.clip is clip
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_full_rejects_concurrent_execution_before_inference(pilot, monkeypatch):
+    module, root, events = pilot
+    original = module.create_run
+
+    def create(config, *args, **kwargs):
+        run = original(config, *args, **kwargs)
+        run.load_config = lambda: SimpleNamespace(
+            execution=SimpleNamespace(concurrency=2, max_attempts=1)
+        )
+        return run
+
+    monkeypatch.setattr(module, "create_run", create)
+    monkeypatch.setattr(
+        sys, "argv", ["runner", "--freeze", str(root), "--scope", "full", "--execute"]
+    )
+    with pytest.raises(ValueError, match="concurrency=1"):
         module.main()
     assert not events

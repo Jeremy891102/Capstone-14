@@ -1,7 +1,7 @@
 # HD-EPIC baseline preparation and pilot
 
-This workflow implements the October 17 proposal. The user has authorized only
-offline preparation and the two-report pilot, not the full baseline execution.
+This workflow implements the October 17 proposal. The two-report pilot has been executed. Full-runner development and offline
+validation are authorized; full paid execution is a separate explicit action.
 
 Run on the Azure VM from `/home/azureuser/Capstone-14` using `.venv/bin/python`.
 Credentials stay in the ignored `.env`; scripts never print them.
@@ -100,3 +100,44 @@ that assembly exposes cross-question hints absent from independent calls. The
 source records do not establish whether the benchmark creators intentionally
 sampled the same event twice or which annotation-generation step produced it.
 The original data and the frozen question selection are unchanged by this fix.
+
+
+## Full baseline runner
+
+The same runner supports `--scope full`; omitting it still selects the original
+two-report pilot. Full mode reads each experiment's frozen `config.yaml` and
+requires its entire rendered request list to match `requests/<experiment>.jsonl`
+exactly, including model, generation settings, question order and video windows.
+It also requires the per-experiment call counts listed above (4,355 total).
+No question/event deduplication or reshuffling is performed.
+
+```bash
+# FREE: validate all full-run snapshots, local paths, inputs, GT and budget estimate.
+.venv/bin/python scripts/run_hd_epic_baseline_pilot.py \
+  --freeze outputs/hd_epic_baseline_20261017 --scope full
+
+# PAID: use only when full execution is explicitly requested. Same command resumes.
+.venv/bin/python scripts/run_hd_epic_baseline_pilot.py \
+  --freeze outputs/hd_epic_baseline_20261017 --scope full --execute
+```
+
+Full outputs live under `full/`, never `pilot/`: `full_plan.json`,
+`full_results.json`, `runs/<experiment>/` (snapshots, checkpoints and responses),
+and `<experiment>/` (wire inputs, raw outputs, timing history, evaluation log,
+metrics and summary). Each summary includes accuracy, JSON completeness, token
+usage, pricing-derived cost and elapsed time. These generated outputs remain
+ignored by Git. The pilot-specific reporting script remains pilot-only.
+
+The default estimate limit is US$60 for full scope and US$1.50 for pilot.
+`--max-estimated-cost-usd` changes this preflight limit; it is **not a live billing
+cap**. Actual costs depend on provider token usage. Execution remains sequential
+and uses the frozen one-attempt policy; no failed calls are retried automatically.
+Successful calls within `full/runs/` are skipped on resume. Pilot results are not
+imported into a new full run, so nominal 4,355 calls include those pilot questions
+again; run identity remains explicit for downstream analysis.
+
+Full mode records malformed/invalid model answers in evaluation and continues
+when the inference run itself completed; such answers remain in the denominator.
+The pilot retains its stricter completeness checks. Failed inference stops the
+runner after saving available evidence. A later package upgrade requires
+`--allow-code-change` for existing snapshots, while frozen inputs must still match.
