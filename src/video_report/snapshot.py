@@ -28,6 +28,7 @@ from video_report.datasets.base import (
     resolve_video,
 )
 from video_report.methods import METHODS, CallSpec, ReportSelection, check_plan
+from video_report.methods.batched import plan_batched
 from video_report.prompting import PromptTemplates, render
 from video_report.providers import validate_request_for
 from video_report.providers.base import ModelRequest, VideoInput
@@ -97,7 +98,11 @@ def build_snapshot(
     templates.check()
 
     selections = [ReportSelection(r.id, tuple(f.id for f in r.fields)) for r in reports]
-    plan = METHODS[cfg.method.name](selections)
+    if cfg.method.name == "batched":
+        assert cfg.method.batch_size is not None
+        plan = plan_batched(selections, cfg.method.batch_size)
+    else:
+        plan = METHODS[cfg.method.name](selections)
     check_plan(plan, selections)
 
     config_root = resolve_relative(base, cfg.data.video_root) if cfg.data.video_root else None
