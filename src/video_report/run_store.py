@@ -214,6 +214,12 @@ class RunDir:
             list(self.load_requests().values()),
             mock.read_text(encoding="utf-8") if mock else None,
         )
+        # Hash what was actually frozen, without injecting defaults added by newer schemas.
+        frozen_config = read_json(self.snapshot / "config.json")
+        for key in ("execution", "description", "pricing"):
+            frozen_config.pop(key, None)
+        current["config"] = fingerprint(frozen_config)
+        current["overall"] = fingerprint({k: v for k, v in current.items() if k != "overall"})
         recorded = self.load_fingerprints()
         changed = sorted(k for k in recorded if current.get(k) != recorded[k])
         if changed:

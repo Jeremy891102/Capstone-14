@@ -32,7 +32,14 @@ class DataConfig(_Strict):
 
 
 class MethodConfig(_Strict):
-    name: Literal["whole_report", "per_field"]
+    name: Literal["whole_report", "per_field", "batched"]
+    batch_size: int | None = Field(default=None, ge=1, strict=True)
+
+    @model_validator(mode="after")
+    def _batch_setting(self) -> MethodConfig:
+        if (self.name == "batched") != (self.batch_size is not None):
+            raise ValueError("batch_size is required only for the batched method")
+        return self
 
 
 class PromptConfig(_Strict):
