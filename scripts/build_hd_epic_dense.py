@@ -3,6 +3,7 @@ Usage: python scripts/build_hd_epic_dense.py <dir with vqa-benchmark/*.json> dat
          [--videos N] [--window 300] [--max-q 50] [--video-ids ID ...]"""
 
 import argparse
+import itertools
 import json
 import pathlib
 import re
@@ -24,6 +25,11 @@ ap.add_argument(
     type=float,
     default=0,
     help="with --target-q: skip videos needing a longer window",
+)
+ap.add_argument(
+    "--dedup",
+    action="store_true",
+    help="with --target-q: one question per action label, no overlapping evidence intervals",
 )
 ap.add_argument("--video-ids", nargs="*")
 args = ap.parse_args()
@@ -84,11 +90,31 @@ def best_window(L):  # start at an item start; most items fully inside [a, a+W]
     )
 
 
+def evidence(s, e, cat, q):  # (action label, interval): loc = answer interval, else the segment
+    m = re.search(r"<([^>]+)>", q["question"])
+    act = m and m[1].lower().replace("put down ", "put ").replace("leave ", "put ")
+    if cat == "fine_grained_action_localization":
+        s, e = map(sec, re.findall(r"<TIME (\S+) video 1>", q["choices"][q["correct_idx"]]))
+    return act, s, e
+
+
+def kept(L, a):  # items starting at/after a, by end time; --dedup skips repeated actions/overlaps
+    acts, evs = set(), []
+    for x in sorted((x for x in L if x[0] >= a), key=lambda x: x[1]):
+        if args.dedup:
+            act, s, e = evidence(x[0], x[1], x[2], x[4])
+            if (act and act in acts) or any(s < y and z < e for z, y in evs):
+                continue
+            acts.add(act)
+            evs.append((s, e))
+        yield x
+
+
 def shortest_window(L):  # start at an item start; window ends at the N-th smallest item end
     n, best = args.target_q, None
     for a, *_ in L:
-        E = sorted(e for s, e, *_ in L if s >= a)
-        if len(E) >= n and (best is None or E[n - 1] - a < best[2]):
+        E = [x[1] for x in itertools.islice(kept(L, a), n)]
+        if len(E) == n and (best is None or E[n - 1] - a < best[2]):
             best = (n, a, E[n - 1] - a)
     return best if best and (not args.max_window or best[2] <= args.max_window) else None
 
@@ -107,6 +133,9 @@ for n, (_, a, win, vid) in enumerate(cands, 1):
     b = a + win
     rid = f"hdepic-dense-{n:03d}"
     inside = [x for x in items[vid] if x[0] >= a and x[1] <= b + 1e-6][: args.max_q]
+    if args.dedup:  # exactly the deduplicated N, in source order
+        chosen = set(map(id, itertools.islice(kept(items[vid], a), args.target_q)))
+        inside = [x for x in items[vid] if id(x) in chosen]
     fields = []
     for s, e, cat, qid, q in inside:
         fid = f"{CATS[cat]}_{qid.rsplit('_', 1)[1]}"
@@ -170,7 +199,8 @@ def w(n, rows):
 w("reports.jsonl", reports)
 w("ground_truth.jsonl", gt)
 desc = (
-    f"shortest holding {args.target_q} Qs, max {args.max_window:.0f}s"
+    f"shortest holding {args.target_q}{' deduplicated' if args.dedup else ''} Qs, "
+    f"max {args.max_window:.0f}s"
     if args.target_q
     else f"{args.window:.0f}s"
 )
