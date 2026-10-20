@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from video_report.config import ExperimentConfig
+from video_report.io_utils import fingerprint
 from video_report.providers import build_provider, preflight
 from video_report.providers.base import Provider
 from video_report.run_store import RunDir, RunError
@@ -120,8 +121,10 @@ def check_resume_compatibility(
                 f"config is for experiment {snap.config.name!r}, run is "
                 f"{run.read_meta()['experiment']!r}"
             )
+        # Compare both configs through today's schema after verifying the frozen bytes above.
+        expected = {**recorded, "config": fingerprint(run.load_config().inference_view())}
         changed = sorted(
-            k for k in recorded if k != "overall" and snap.fingerprints.get(k) != recorded[k]
+            k for k in expected if k != "overall" and snap.fingerprints.get(k) != expected[k]
         )
         if changed:
             problems.append(
