@@ -341,7 +341,7 @@ def main():
                 json.loads(x) for x in (evaluation / "call_parses.jsonl").read_text().splitlines()
             ]
             good = all(
-                p["parse_status"] == "ok" and not p["extra_keys"] and not p["missing"]
+                p.get("parse_status") == "ok" and not p.get("extra_keys") and not p.get("missing")
                 for p in parses
             )
             summary = {

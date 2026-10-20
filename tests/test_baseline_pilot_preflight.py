@@ -202,7 +202,16 @@ def test_full_rejects_matching_but_incomplete_scope(pilot, monkeypatch):
 
 @pytest.mark.parametrize("pilot", [True], indirect=True)
 @pytest.mark.parametrize("selected", [None, ["E5"]])
-def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkeypatch, selected):
+@pytest.mark.parametrize(
+    "parse_record",
+    [
+        {"parse_status": "invalid_json", "extra_keys": [], "missing": ["f"]},
+        {"call_id": "failed-before-http", "status": "failed"},
+    ],
+)
+def test_full_records_invalid_answers_without_dropping_experiments(
+    pilot, monkeypatch, selected, parse_record
+):
     module, root, events = pilot
     original = module.create_run
     http = module.JSONHTTP.post
@@ -223,9 +232,7 @@ def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkey
         out = root / "evaluations" / path.name
         out.mkdir(parents=True)
         (out / "smoke_test.log").write_text("saved invalid model answer\n")
-        (out / "call_parses.jsonl").write_text(
-            json.dumps({"parse_status": "invalid_json", "extra_keys": [], "missing": ["f"]}) + "\n"
-        )
+        (out / "call_parses.jsonl").write_text(json.dumps(parse_record) + "\n")
         return out, {
             "fields": {"field_accuracy": {"value": 0}, "valid_answer_rate": {"value": 0}},
             "usage": {"cost": 0},
