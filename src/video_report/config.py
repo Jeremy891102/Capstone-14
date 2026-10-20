@@ -66,7 +66,7 @@ class GeminiProviderConfig(_Strict):
     clip_height: int = Field(default=480, gt=0)
     clip_fps: float = Field(default=2.0, gt=0, le=24)
     media_timeout_s: float = Field(default=120.0, gt=0)
-    max_payload_bytes: int = Field(default=20_000_000, gt=0)
+    max_payload_bytes: int = Field(default=32_000_000, gt=0)
     api_key_env: str = "GEMINI_API_KEY"
     file_poll_interval_s: float = Field(default=2.0, gt=0)
     file_active_timeout_s: float = Field(default=300.0, gt=0)

@@ -363,3 +363,27 @@ def test_missing_real_credentials():
 def test_openai_malformed_response_fields(data):
     with pytest.raises(PermanentProviderError, match="invalid_response"):
         OpenAIProvider._to_response(data)
+
+
+def test_vertex_default_accepts_existing_24mb_payload_without_changing_media(video, monkeypatch):
+    encoded = "A" * 23_868_524  # Size observed in E5 report 067; fake bytes, no live API.
+    monkeypatch.setattr("video_report.providers.vertex_gemini.encode_local", lambda *a: encoded)
+    seen = []
+
+    def handler(request):
+        seen.append(len(request.content))
+        return httpx.Response(200, json=vg_response())
+
+    p = VertexGeminiProvider(
+        "gemini-3.5-flash-lite",
+        GeminiProviderConfig(backend="vertex_express"),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+        environ={"GEMINI_API_KEY": "fake-key"},
+    )
+    monkeypatch.setattr(p.media, "clip", lambda *a: video)
+    try:
+        result = p.generate(replace(req(video), model="gemini-3.5-flash-lite"), timeout_s=4)
+        assert result.text == '{"f":"A"}'
+        assert len(seen) == 1 and 23_868_524 < seen[0] < 32_000_000
+    finally:
+        p.close()

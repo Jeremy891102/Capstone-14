@@ -158,3 +158,13 @@ receipt, blocks reuse. Requests/config snapshots separately verify questions,
 options, order, prompts, model, generation, preprocessing and video windows.
 This protection starts with the new full run; historical pilot evidence is not
 retroactively certified or imported.
+
+
+### Local inline payload admission
+
+The Gemini adapter default local payload limit is now 32,000,000 bytes,
+covering the largest E5 encoded video (23,868,524 bytes) plus prompts without
+changing the video, FPS or resolution. This is a local admission setting, not
+a claim that a particular remote endpoint accepts that size. The regression
+test uses fake HTTP only; no extra paid calls are made. Existing snapshots
+retain their recorded 20,000,000-byte setting; do not rewrite historical runs.
