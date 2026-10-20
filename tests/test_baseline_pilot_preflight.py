@@ -61,6 +61,9 @@ def pilot(monkeypatch, tmp_path, request):
     monkeypatch.setattr(module, "verify_derived_ground_truth", lambda *a: "verified-gt")
     monkeypatch.setattr(module, "execute_run", lambda *a, **kw: events.append("execute"))
     monkeypatch.setattr(module.JSONHTTP, "post", lambda *a, **kw: pytest.fail("HTTP forbidden"))
+    if not hasattr(module, "_real_verify_media_inputs"):
+        module._real_verify_media_inputs = module.verify_media_inputs
+    monkeypatch.setattr(module, "verify_media_inputs", lambda *a: {})
     return module, root, events
 
 
@@ -198,7 +201,8 @@ def test_full_rejects_matching_but_incomplete_scope(pilot, monkeypatch):
 
 
 @pytest.mark.parametrize("pilot", [True], indirect=True)
-def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkeypatch):
+@pytest.mark.parametrize("selected", [None, ["E5"]])
+def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkeypatch, selected):
     module, root, events = pilot
     original = module.create_run
     http = module.JSONHTTP.post
@@ -240,11 +244,20 @@ def test_full_records_invalid_answers_without_dropping_experiments(pilot, monkey
     monkeypatch.setattr(
         sys, "argv", ["runner", "--freeze", str(root), "--scope", "full", "--execute"]
     )
+    if selected:
+        monkeypatch.setattr(sys, "argv", sys.argv + ["--experiments", *selected])
+        (root / "full").mkdir(parents=True)
+        (root / "full/full_results.json").write_text(
+            json.dumps([{"experiment": "E1", "preserved": True}])
+        )
     module.main()
     result = json.loads((root / "full/full_results.json").read_text())
-    assert len(result) == 7
-    assert all(not r["all_calls_complete_json"] for r in result)
-    assert events == [(e, False) for e in module.ORDER]
+    new = [r for r in result if not r.get("preserved")]
+    assert len(new) == (len(selected) if selected else 7)
+    assert all(not r["all_calls_complete_json"] for r in new)
+    if selected:
+        assert next(r for r in result if r["experiment"] == "E1")["preserved"]
+    assert events == [(e, False) for e in (selected or module.ORDER)]
     assert module.JSONHTTP.post is http
     assert module.VertexGeminiProvider.generate is generate
     assert module.LocalMedia.clip is clip
@@ -269,3 +282,41 @@ def test_full_rejects_concurrent_execution_before_inference(pilot, monkeypatch):
     with pytest.raises(ValueError, match="concurrency=1"):
         module.main()
     assert not events
+
+
+@pytest.mark.parametrize("pilot", [True], indirect=True)
+def test_only_e5_can_run_without_touching_other_experiments(pilot, monkeypatch):
+    module, root, events = pilot
+    monkeypatch.setattr(
+        sys, "argv", ["runner", "--freeze", str(root), "--scope", "full", "--experiments", "E5"]
+    )
+    module.main()
+    plan = json.loads((root / "full/full_E5_plan.json").read_text())
+    assert plan["total_calls"] == 73 and plan["calls"] == {"E5": 73}
+    assert plan["execute_order"] == ["E5"]
+    assert not events and not (root / "full/full_plan.json").exists()
+
+
+def test_video_bytes_must_match_before_reusing_successful_calls(pilot, tmp_path):
+    module, root, events = pilot
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"original video bytes")
+    run = SimpleNamespace(path=tmp_path / "run", read_all_calls=lambda: [])
+    run.path.mkdir()
+    req = SimpleNamespace(videos=[SimpleNamespace(location=str(video), is_local=True)])
+    module._real_verify_media_inputs(run, [req], {})
+    run.read_all_calls = lambda: [{"attempts": [{"outcome": "success"}]}]
+    module._real_verify_media_inputs(run, [req], {})
+    video.write_bytes(b"different video bytes")
+    with pytest.raises(ValueError, match="video bytes changed"):
+        module._real_verify_media_inputs(run, [req], {})
+
+
+def test_existing_attempts_without_video_receipt_cannot_be_reused(pilot, tmp_path):
+    module, root, events = pilot
+    video = tmp_path / "video.mp4"
+    video.write_bytes(b"video")
+    run = SimpleNamespace(path=tmp_path, read_all_calls=lambda: [{"attempts": [{}]}])
+    req = SimpleNamespace(videos=[SimpleNamespace(location=str(video), is_local=True)])
+    with pytest.raises(ValueError, match="missing video fingerprint"):
+        module._real_verify_media_inputs(run, [req], {})

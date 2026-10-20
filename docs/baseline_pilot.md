@@ -141,3 +141,20 @@ when the inference run itself completed; such answers remain in the denominator.
 The pilot retains its stricter completeness checks. Failed inference stops the
 runner after saving available evidence. A later package upgrade requires
 `--allow-code-change` for existing snapshots, while frozen inputs must still match.
+
+
+### Stage E5 before continuing
+
+Use `--scope full --experiments E5` to preflight only the 73 frozen size-32
+requests; add `--execute` only to execute/resume E5 and stop. Selection-specific
+plans use `full/full_E5_plan.json`; `full_results.json` merges summaries by
+experiment so later selected phases preserve E5. The same `full/runs/E5` identity
+is used by a later complete run; successful E5 calls will not be resent.
+
+Before full-mode inference or resume, `runs/<experiment>/media_inputs.json` seals
+the SHA-256 and byte size of every original video. Each invocation hashes the
+actual bytes again. A changed video, or existing attempts without a prior media
+receipt, blocks reuse. Requests/config snapshots separately verify questions,
+options, order, prompts, model, generation, preprocessing and video windows.
+This protection starts with the new full run; historical pilot evidence is not
+retroactively certified or imported.

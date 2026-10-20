@@ -20,6 +20,7 @@ from pathlib import Path
 from prepare_hd_epic_baseline import EXPECTED, PILOT_IDS, SYSTEM, dump, sha
 from video_report.benchmarks.baseline import validate_pilot_budget, verify_derived_ground_truth
 from video_report.evaluation.evaluate import evaluate_run
+from video_report.io_utils import atomic_write_json, sha256_file
 from video_report.pipeline import check_resume_compatibility, create_run, execute_run
 from video_report.providers.base import PermanentProviderError
 from video_report.providers.http_api import JSONHTTP
@@ -35,11 +36,41 @@ def require(condition, message):
         raise ValueError(message)
 
 
+def verify_media_inputs(run, requests, digest_cache):
+    """Seal original video bytes before first inference; refuse changed-media resume."""
+    fingerprints = {}
+    for request in requests:
+        for video in request.videos:
+            require(video.is_local, "baseline requires local video bytes")
+            path = Path(video.location)
+            stat = path.stat()
+            key = (str(path), stat.st_size, stat.st_mtime_ns)
+            if key not in digest_cache:
+                digest_cache[key] = sha256_file(path)
+            fingerprints[str(path)] = {"sha256": digest_cache[key], "bytes": stat.st_size}
+    receipt = run.path / "media_inputs.json"
+    if receipt.exists():
+        require(json.loads(receipt.read_text()) == fingerprints, "original video bytes changed")
+    else:
+        require(
+            not any(c["attempts"] for c in run.read_all_calls()),
+            "missing video fingerprint for existing attempts; cannot reuse results",
+        )
+        atomic_write_json(receipt, fingerprints)
+    return fingerprints
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--freeze", type=Path, required=True)
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--scope", choices=["pilot", "full"], default="pilot")
+    parser.add_argument(
+        "--experiments",
+        nargs="+",
+        choices=ORDER,
+        help="Full scope only: execute only these frozen experiments",
+    )
     parser.add_argument(
         "--allow-code-change",
         action="store_true",
@@ -51,7 +82,14 @@ def main():
     freeze = args.freeze.resolve()
     scope = args.scope
     root = freeze / scope
-    total_calls = sum(EXPECTED.values()) if scope == "full" else 124
+    require(args.experiments is None or scope == "full", "experiment subsets require full scope")
+    require(
+        args.experiments is None or len(set(args.experiments)) == len(args.experiments),
+        "duplicate experiments",
+    )
+    order = [e for e in ORDER if args.experiments is None or e in args.experiments]
+    plan_name = scope if args.experiments is None else scope + "_" + "_".join(order)
+    total_calls = sum(EXPECTED[e] for e in order) if scope == "full" else 124
     limit = args.max_estimated_cost_usd
     if limit is None:
         limit = 60.0 if scope == "full" else 1.50
@@ -73,6 +111,8 @@ def main():
         manifest["prompt_sha256"] == hashlib.sha256(SYSTEM.encode()).hexdigest(),
         "system prompt changed",
     )
+    media_fingerprints = {}
+    video_digests = {}
     frozen_requests = {}
     runs = {}
     costs = {}
@@ -80,7 +120,7 @@ def main():
     hashes = {}
     gt_hashes = {}
     resume_notes = {}
-    for e in ORDER:
+    for e in order:
         require(
             sha(freeze / "requests" / f"{e}.jsonl") == manifest["request_file_hashes"][e],
             "frozen requests changed",
@@ -124,6 +164,8 @@ def main():
             "inputs differ from freeze",
         )
         hashes[e] = run.verify_snapshot()
+        if scope == "full":
+            media_fingerprints[e] = verify_media_inputs(run, reqs, video_digests)
         plan[e] = len(reqs)
         if scope == "full":
             require(plan[e] == EXPECTED[e], f"{e}: wrong full call count")
@@ -144,7 +186,7 @@ def main():
             "full baseline estimate exceeds budget or budget is invalid",
         )
     dump(
-        root / f"{scope}_plan.json",
+        root / f"{plan_name}_plan.json",
         {
             "scope": scope,
             "pilot_ids": PILOT_IDS if scope == "pilot" else None,
@@ -154,7 +196,8 @@ def main():
             "estimated_cost_by_experiment": costs,
             "estimate_limit_usd": limit,
             "note": "Estimate guard, not a provider billing cap; one attempt, no automatic retries",
-            "execute_order": ORDER,
+            "execute_order": order,
+            "original_video_fingerprints": media_fingerprints,
             "snapshot_fingerprints": hashes,
             "derived_ground_truth_sha256": gt_hashes,
             "runner_sha256": sha(Path(__file__)),
@@ -254,8 +297,10 @@ def main():
     LocalMedia.clip = clip
     JSONHTTP.post = post
     try:
-        results = []
-        for e in ORDER:
+        results_path = root / f"{scope}_results.json"
+        previous = json.loads(results_path.read_text()) if results_path.exists() else []
+        results_by_experiment = {item["experiment"]: item for item in previous}
+        for e in order:
             run = runs[e]
             directory = root / e
             for name in ["wire_inputs", "raw_outputs"]:
@@ -308,8 +353,11 @@ def main():
                 "all_calls_complete_json": good,
             }
             dump(directory / "summary.json", summary)
-            results.append(summary)
-            dump(root / f"{scope}_results.json", results)
+            results_by_experiment[e] = summary
+            dump(
+                results_path,
+                [results_by_experiment[x] for x in ORDER if x in results_by_experiment],
+            )
             print(
                 f"{e}: {metrics['fields']['field_accuracy']}; cost ${metrics['usage']['cost']}",
                 flush=True,
@@ -328,7 +376,7 @@ def main():
         LocalMedia.clip = original_clip
         JSONHTTP.post = original_post
     print(
-        "FULL BASELINE COMPLETE"
+        f"FULL-SCOPE EXPERIMENTS COMPLETE: {', '.join(order)}"
         if scope == "full"
         else "TWO-REPORT PILOT COMPLETE — full baseline has NOT been executed.",
         flush=True,
