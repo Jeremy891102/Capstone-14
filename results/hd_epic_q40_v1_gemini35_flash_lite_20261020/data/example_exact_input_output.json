@@ -1,0 +1,97 @@
+{
+  "experiment": "E1",
+  "request": {
+    "call_id": "hdepic-dense-001::field=loc_445",
+    "report_id": "hdepic-dense-001",
+    "field_ids": [
+      "loc_445"
+    ],
+    "system": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n",
+    "user": "Task context:\ntask_name: Kitchen cooking session (P09)\n\nAnswer all 1 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_445]\nQuestion: When did the action <transfer bowls> happen in this clip? (segment: 0:00:00.000 - 0:03:25.293 of this clip)\nOptions:\nA. this clip from 0:00:54.684 to 0:00:56.654\nB. this clip from 0:00:38.873 to 0:00:39.793\nC. this clip from 0:00:50.103 to 0:00:51.814\nD. this clip from 0:00:55.774 to 0:00:56.334\nE. this clip from 0:00:52.384 to 0:00:52.853\n\nReturn a JSON object with exactly these keys (loc_445) and one option letter as each value:\n{\n  \"loc_445\": \"<one letter: A/B/C/D/E>\"\n}\n",
+    "videos": [
+      {
+        "video_id": "head_cam",
+        "location": "/home/azureuser/datasets/hd-epic/Videos/P09/P09-20240622-154652.mp4",
+        "is_local": true,
+        "mime_type": "video/mp4",
+        "start_s": 300.406,
+        "end_s": 505.699
+      }
+    ],
+    "model": "gemini-3.5-flash-lite",
+    "generation": {
+      "max_output_tokens": 2048,
+      "response_format": "json",
+      "seed": null,
+      "temperature": 0.0,
+      "top_p": null
+    },
+    "fps": 2.0
+  },
+  "prepared_video": {
+    "call_id": "hdepic-dense-001::field=loc_445",
+    "clip_sha256": "d5e915834b0bda7725fcf4e849e26d6c6ba37b3ed521fa7e264ec4fa3d29c0ed",
+    "clip_path": "/home/azureuser/Capstone-14/outputs/hd_epic_baseline_20261017/remaining-v2/media/h264-crf30-veryfast-output-duration-v2/3a3726e302fbf3f476ca64dc9cf6a47f006eb3d995c13efc6502dbed580e950b.mp4",
+    "bytes": 2448209,
+    "preprocessing_or_cache_lookup_s": 0.08228263701312244
+  },
+  "response": {
+    "finish_reason": "STOP",
+    "metadata": {
+      "input_mode": "local_clip_no_audio"
+    },
+    "model_version": "gemini-3.5-flash-lite",
+    "response_id": "IIXXaqrHHKPhsbwP69P_yAk",
+    "text": "{\n  \"loc_445\": \"C\"\n}",
+    "usage": {
+      "cached_input_tokens": null,
+      "input_tokens": 13561,
+      "output_tokens": 15,
+      "reasoning_tokens": null,
+      "total_tokens": 13576
+    }
+  },
+  "usage_and_timing": {
+    "experiment": "E1",
+    "call_id": "hdepic-dense-001::field=loc_445",
+    "report_id": "hdepic-dense-001",
+    "questions": 1,
+    "model": "gemini-3.5-flash-lite",
+    "finish_reason": "STOP",
+    "input_tokens": 13561,
+    "output_tokens": 15,
+    "reasoning_tokens": 0,
+    "cached_input_tokens": 0,
+    "total_tokens": 13576,
+    "cost_usd": 0.0041058,
+    "api_round_trip_s": 4.908326375065371,
+    "provider_latency_s": 5.0285,
+    "source_video": "/home/azureuser/datasets/hd-epic/Videos/P09/P09-20240622-154652.mp4",
+    "window_start_s": 300.406,
+    "window_end_s": 505.699,
+    "clip_sha256": "d5e915834b0bda7725fcf4e849e26d6c6ba37b3ed521fa7e264ec4fa3d29c0ed",
+    "matched_localization_fields": 0,
+    "source_run": "/Users/jeremy/Documents/Codex/2026-10-06/git/outputs/baseline_remaining_v2_20261020/evidence/remaining-v2/runs/E1",
+    "correct": 0,
+    "invalid_answers": 0
+  },
+  "offline_scores": [
+    {
+      "report_id": "hdepic-dense-001",
+      "field_id": "loc_445",
+      "call_id": "hdepic-dense-001::field=loc_445",
+      "outcome": "incorrect",
+      "correct": false,
+      "predicted": "C",
+      "predicted_text": "this clip from 0:00:50.103 to 0:00:51.814",
+      "target": "E",
+      "target_text": "this clip from 0:00:52.384 to 0:00:52.853",
+      "detail": null,
+      "experiment": "E1",
+      "category": "fine_grained_action_localization",
+      "matched_localization": false,
+      "e6_common_target": false,
+      "source_video": "/home/azureuser/datasets/hd-epic/Videos/P09/P09-20240622-154652.mp4"
+    }
+  ]
+}
