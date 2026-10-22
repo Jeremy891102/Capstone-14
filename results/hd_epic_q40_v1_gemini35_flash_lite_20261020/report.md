@@ -47,6 +47,8 @@ Why are How/Why higher? Not established by this experiment. Saved How/Why prompt
 
 Weight has only 16 questions from 10 videos, with a 0-40% interval. Do not use its rank as a general conclusion. This study covers four subtypes, not all HD-EPIC question types.
 
+Cost and speed do not depend on subtype: each one-question call costs about $0.01 and takes a median of about 4 s, because the ~32K input tokens are almost all video. Within the same videos, How, Why and Weight calls cost 1.00-1.02x and take 0.95-0.97x the API time of Localization calls.
+
 Actual prompt example: how_279 asks how the person rinses a chopping board and supplies a 1.09-second segment. This gives a temporal pointer that localization is being asked to recover. Raw input and predictions are unchanged; pooled rates remain in summary.json.
 
 ## Q3  Does subtype mixing affect the same localization questions?
@@ -65,6 +67,8 @@ Mixed subtypes | 40 / 96 | 41.67%
 ![04_e6_paired.png](figures/04_e6_paired.png)
 
 Result: pure answers 41/96 correctly; mixed answers 40/96. Five targets change correct -> wrong and four wrong -> correct. Net change: -1.04 pp. The 95% interval (-7.29 to +5.21) crosses zero: this run does not establish benefit or harm, and does not prove equivalence.
+
+Cost and speed are also unaffected by mixing: mixed calls cost 1% less ($0.2449 vs $0.2473 for 24 calls) because their question text is ~300 tokens shorter. Mixed calls had a lower median API time (6.8 vs 10.1 s), but the two conditions ran at different times and size-8 E3 calls on the same videos took 4.9 s, so this gap reflects provider load rather than mixing.
 
 Read the figure: bars compare the SAME 96 targets; gray whiskers show 95% video-bootstrap intervals. The all-192-field mixed/pure totals are excluded because companion questions differ.
 
