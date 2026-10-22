@@ -64,7 +64,9 @@ for r in jl(Q40 / "reports.jsonl"):
     done |= {t["evidence"]["hd_epic_question_id"] for t in rows}
     if keep:
         reports.append({**r, "fields": [f for f in r["fields"] if f["id"] in keep]})
-        reports[-1]["source"]["annotation_refs"] = [t["evidence"]["hd_epic_question_id"] for t in rows]
+        reports[-1]["source"]["annotation_refs"] = [
+            t["evidence"]["hd_epic_question_id"] for t in rows
+        ]
         gt += rows
 assert len(windows) == 76 and windows.keys() == dur.keys()
 
@@ -81,7 +83,9 @@ for cat in CATS:
             and len(set(q["choices"])) == len(q["choices"])
         ):
             i = ins[0]
-            items.setdefault(i["id"], []).append((sec(i["start_time"]), sec(i["end_time"]), cat, qid, q))
+            items.setdefault(i["id"], []).append(
+                (sec(i["start_time"]), sec(i["end_time"]), cat, qid, q)
+            )
 
 n = 0
 for vid in sorted(items):
