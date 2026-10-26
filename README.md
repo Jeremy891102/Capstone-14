@@ -10,6 +10,7 @@ This is a small, testable harness for experiments that turn **egocentric task vi
 * Each run is frozen, resumable, and evaluated offline in a separate step.
 
 Docs:
+* [Baseline results and analysis guide](results/hd_epic_q40_v1_gemini35_flash_lite_20261020/README.md): completed HD-EPIC results, three-page report, saved predictions and offline commands.
 * [docs/multi_provider_pilot.md](docs/multi_provider_pilot.md): OpenAI, Dennis's Vertex Gemini,
   local key setup, and the single-type nested localization pilot (offline-verified only).
 * [docs/openrouter_response_fixes.md](docs/openrouter_response_fixes.md): why OpenRouter token
@@ -207,3 +208,7 @@ and in the build log. In short:
   * a fully green CI run on GitHub (partially observed; see the build log)
 
 Passing tests do not make this production-ready.
+
+Smoke-test runs automatically produce execution and evaluation logs; see
+[logging workflow](docs/smoke_test_logging.md) and the
+[five-video results and workflow](docs/smoke_test_results.md).

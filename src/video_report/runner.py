@@ -41,6 +41,7 @@ from video_report.providers.base import (
     ProviderTimeoutError,
     redact,
 )
+from video_report.run_log import export_run_log
 from video_report.run_store import RunDir
 
 TERMINAL_OK = "succeeded"
@@ -199,6 +200,7 @@ class Runner:
             meta["state"] = final
             meta["counts"] = counts
             self.run.write_meta(meta)
+            export_run_log(self.run)
             return SessionResult(final, counts, recovered, self._executed)
 
     def _recover_interrupted(self) -> dict[str, int]:
