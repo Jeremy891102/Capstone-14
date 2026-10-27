@@ -1,114 +1,128 @@
-# CC4D 題型實驗:出題規則(草稿,2026-10-26)
+# CC4D answer-type experiment: question rules (draft, 2026-10-26)
 
-說明如何從 CaptainCook4D 原始標注產生各題型的題目。實驗設計見
-`docs/cc4d_answer_type_proposal.md`,評分規則見 `docs/scoring_rules.md`。
+Chinese version: `docs/cc4d_format_questions.zh.md`. Both say the same thing.
 
-## 原則
+How each answer type's questions are generated from the CaptainCook4D raw annotations. The
+experiment design is in `docs/cc4d_answer_type_proposal.md`, the scoring rules in
+`docs/scoring_rules.md`.
 
-- **先抽事實,題型只是問法。** 同一個事實在不同 call 裡用各種題型各問一次;同一個 call 裡每個
-  步驟只出現一次。
-- **題型分配不看答案,選項清單不隨答案改變。**
-- 題目用英文;步驟名稱沿用 `cc4d_dense_v1`(描述文字、重複步驟加序數、不給 `step_id`)。
+## Principles
 
-## 模型輸入
+- **Facts first; the answer type is only how a fact is asked.** The same fact is asked once in
+  each answer type, in separate calls. Within one call, each step appears only once.
+- **Answer types are assigned without looking at the answer, and option lists do not change with
+  the answer.**
+- Questions are in English. Step names follow `cc4d_dense_v1` (description text, ordinal for
+  repeated steps, no `step_id`).
 
-- **影片:** 整段錄影,0 s 到最後一個標注步驟後 5 s,fps = 2。
-- **context:** `task_name`、`recipe`、`error_definitions`。
+## Model input
 
-## 使用的標注
+- **Video:** the whole recording, from 0 s to 5 s after the last annotated step, fps = 2.
+- **Context:** `task_name`, `recipe`, `error_definitions`.
 
-| 欄位 | 用途 |
+## Annotations used
+
+| Field | Use |
 | --- | --- |
-| `start_time` / `end_time` | 步驟何時做、做多久;`-1` 表示沒有畫面 |
-| `errors[].tag` | 錯誤類別;`Missing Step` 表示沒做 |
-| `errors[].description` | open_text 的參考答案 |
-| `modified_description` | 只給評審參考 |
-| task graph `edges` | 找會被 recipe 洩漏的題目;節點 id 和 `step_id` 不同,用描述文字對應 |
+| `start_time` / `end_time` | When and how long a step was done; `-1` means no footage |
+| `errors[].tag` | Error category; `Missing Step` means not done |
+| `errors[].description` | Reference answer for open_text |
+| `modified_description` | Shown to the judge only |
+| task graph `edges` | Finding questions the recipe leaks. Node ids differ from `step_id`; match by description text |
 
-## 矩陣
+## Matrix
 
-| 內容 \ 題型 | bool | single | multi | seconds | int(計數) | open_text |
+| Content \ type | bool | single | multi | seconds | int (count) | open_text |
 | --- | --- | --- | --- | --- | --- | --- |
-| 錯誤(4,696 步) | ✓ | 6 選項 | 6 選項 | — | ✓ | ✓ |
-| 時長(3,763 步) | ✓ | 4 區間 | 8 步 | ✓ | 8 步 | — |
-| 定位(5,049 步) | ✓ | 5 區間 | 8 步 | ✓ | 8 步 | — |
+| Error (4,696 steps) | ✓ | 6 options | 6 options | — | ✓ | ✓ |
+| Duration (3,763 steps) | ✓ | 4 ranges | 8 steps | ✓ | 8 steps | — |
+| Localization (5,049 steps) | ✓ | 5 ranges | 8 steps | ✓ | 8 steps | — |
 
-- 步驟數是 `cc4d_dense_v1` 全部 350 份報告的題庫;實驗用的 64 份(主實驗)和 E5 的 125 / 44 份
-  見實驗提案。
-- 空格:標注沒有錯誤發生的時間點;時長和定位的開放題不易評分。
-- int 一律是計數,不問秒數。
-- 「8 步」是一題列出 8 個步驟,每份報告每列只能出一題。
+- Step counts are the pool over all 350 reports of `cc4d_dense_v1`. The reports used (64 for the
+  main experiment, 125 / 44 for E5) are in the proposal.
+- Empty cells: the annotations give no time for when a mistake happened; open questions on
+  duration and localization are hard to score.
+- int is always a count, never seconds.
+- "8 steps" means one question lists 8 steps, so each report gives one such question per row.
 
-## 錯誤
+## Error
 
-只用 5 類:Preparation、Measurement、Technique、Timing、Temperature。Order 要看整支影片的
-順序,歸到補充內容;Missing Step 改作幻覺題。
+Only 5 categories: Preparation, Measurement, Technique, Timing, Temperature. Order needs the
+order of the whole video, so it moves to the supplementary content. Missing Step becomes a
+hallucination item.
 
-| 步驟(`cc4d_dense_v1` 5,295 步) | 數量 | 處理 |
+| Steps (5,295 in `cc4d_dense_v1`) | Count | Handling |
 | --- | --- | --- |
-| 有畫面,沒有錯誤 | 3,591 | 出題 |
-| 有畫面,有 5 類之一 | 1,118 | 出題;Order 忽略 |
-| 只有 Order 錯誤 | 334 | 排除(不能當作沒有錯誤) |
-| Other | 6 | 排除 |
-| 參考描述太模糊(清單見 `scoring_rules.md`) | 13 | 排除 |
-| Missing Step,沒有畫面 | 237 | 幻覺題,答案 `null` |
-| Missing Step 但有畫面 | 3 | 排除 |
-| 沒有畫面、沒有 Missing Step | 6 | 排除 |
+| Filmed, no mistake | 3,591 | asked |
+| Filmed, one of the 5 categories | 1,118 | asked; Order ignored |
+| Only Order mistakes | 334 | excluded (cannot count as no mistake) |
+| Other | 6 | excluded |
+| Reference too vague (list in `scoring_rules.md`) | 13 | excluded |
+| Missing Step, no footage | 237 | hallucination item, target `null` |
+| Missing Step but has footage | 3 | excluded |
+| No footage, no Missing Step tag | 6 | excluded |
 
-共 4,696 步。標籤數:0 個 3,591、1 個 962、2 個 137、3 個 6。一律答沒有錯誤是 76.5%,所以
-實驗抽 4 錯 4 對,並分開報有錯 / 沒錯兩組。
+4,696 steps in all. Tags per step: 0 on 3,591, 1 on 962, 2 on 137, 3 on 6. Answering "no
+mistake" everywhere scores 76.5%, so the experiment samples 4 with and 4 without a mistake and
+reports the two groups separately.
 
-| 題型 | 問法 | 答案 |
+| Type | Question | Target |
 | --- | --- | --- |
-| bool | Was the step "X" done correctly? | 沒有 5 類標籤 |
-| single | Which of these mistakes was made in the step "X"? If several were made, pick any one. 5 類 + No mistake | 任一個真錯誤都算對 |
-| multi | Which of these mistakes were made in the step "X"? 同樣 6 個選項 | 標籤集合;No mistake 只能單選 |
+| bool | Was the step "X" done correctly? | No tag from the 5 categories |
+| single | Which of these mistakes was made in the step "X"? If several were made, pick any one. 5 categories + No mistake | Any true mistake is correct |
+| multi | Which of these mistakes were made in the step "X"? Same 6 options | Set of tags; No mistake may only be chosen alone |
 | int | How many different kinds of mistakes were made in the step "X"? | 0–3 |
-| open_text | Compared with the recipe, what did the person do differently in the step "X"? Answer "none" if the step was done as written. | 錯誤描述,或 none |
+| open_text | Compared with the recipe, what did the person do differently in the step "X"? Answer "none" if the step was done as written. | Mistake descriptions, or none |
 
-## 時長
+## Duration
 
-題庫:有畫面的 5,049 步,排除描述寫了時間的步驟(看文字就有四成機會答對),剩 4,527;再排除
-時長在切點 17.1 / 31.3 / 56.5 s ±2 s 內的步驟,剩 3,763 步。
+Pool: the 5,049 filmed steps, minus steps whose description states a time (the text alone gives
+a 40% chance of being right): 4,527. Minus steps within ±2 s of the cut points 17.1 / 31.3 /
+56.5 s: 3,763.
 
-| 題型 | 問法 | 答案 |
+| Type | Question | Target |
 | --- | --- | --- |
-| bool | Did the step "X" take longer than 31 seconds? | > 31.3 s,約一半是 |
-| single | How long did the step "X" take? 4 個區間 | 所在區間,各區間數量相近 |
-| multi | Which of these steps took longer than 31 seconds? 8 步 | > 31.3 s 的步驟 |
+| bool | Did the step "X" take longer than 31 seconds? | > 31.3 s, about half yes |
+| single | How long did the step "X" take? 4 ranges | The range it falls in; ranges hold similar counts |
+| multi | Which of these steps took longer than 31 seconds? 8 steps | Steps > 31.3 s |
 | seconds | How many seconds did the step "X" take? | `end − start` |
-| int | Among these steps, how many took longer than 31 seconds? 同樣 8 步 | 步驟數 |
+| int | Among these steps, how many took longer than 31 seconds? Same 8 steps | Number of steps |
 
-## 定位
+## Localization
 
-題庫:有畫面的 5,049 步。
+Pool: the 5,049 filmed steps.
 
-| 題型 | 問法 | 答案 |
+| Type | Question | Target |
 | --- | --- | --- |
-| bool | Was the step "X" being done between t1 and t2? | 是否重疊,一半重疊 |
-| single | When was the step "X" done? 5 個區間 | 正確區間;另 4 個取其他步驟、不重疊 |
-| multi | Which of these steps were being done between t1 and t2? 8 步 | 重疊的步驟 |
-| seconds | At what time did the step "X" start? | `start_time`,誤差 `max(2, 0.25 × 步驟時長)` |
-| int | Among these steps, how many were being done between t1 and t2? 同樣 8 步 | 步驟數 |
+| bool | Was the step "X" being done between t1 and t2? | Whether they overlap; half overlap |
+| single | When was the step "X" done? 5 ranges | The true range; the other 4 come from other steps and do not overlap it |
+| multi | Which of these steps were being done between t1 and t2? 8 steps | Steps that overlap |
+| seconds | At what time did the step "X" start? | `start_time`, tolerance `max(2, 0.25 × step length)` |
+| int | Among these steps, how many were being done between t1 and t2? Same 8 steps | Number of steps |
 
-干擾選項盡量挑 task graph 中和 X 沒有依賴關係的步驟,避免 recipe 洩漏時間位置。
+Distractors are taken where possible from steps with no task-graph dependency on X, so the recipe
+does not leak the time position.
 
-## 沒做的步驟(幻覺)
+## Not-done steps (hallucination)
 
-- **來源:** Missing Step 且沒有畫面的步驟,題庫共 237 個;主實驗的 64 份報告中有 108 個(47 份)。
-  它們在 recipe 裡真實存在,只能靠影片判斷。
-- **一題一步:** 每題附 "If the step was not done in the video, answer null."。沒做的步驟答其他
-  內容是幻覺;有做的步驟答 `null` 是漏看。
-- **一題 8 步:** 沒做的步驟可當選項,選了或算進去就是幻覺。
-- 只在 E1 問。錯誤列另外看誤報(沒錯的步驟說成有錯)、`extras`、`extra_claims`。
+- **Source:** Missing Step tags with no footage: 237 in the pool; 108 in the 64 main reports (47
+  reports). These are real recipe steps, so only the video tells they were skipped.
+- **One-step questions:** each adds "If the step was not done in the video, answer null." Any
+  other answer to a not-done step is a hallucination; `null` on a filmed step is a false
+  not-done.
+- **8-step questions:** a not-done step may be an option; choosing or counting it is the
+  hallucination.
+- Asked in E1 only. The error row also tracks false alarms (a step with no mistake called wrong),
+  `extras` and `extra_claims`.
 
-## 補充內容(不進主矩陣)
+## Supplementary content (outside the main matrix)
 
-- **順序:** 「X 比 Y 先做嗎?」只挑沒有依賴、時間不重疊的步驟對。每份報告中位數 13 對,彼此
-  共用步驟,不是獨立事實。
-- **遺漏:** 沿用 `skipped_steps`。
+- **Order:** "Was X done before Y?", only for step pairs with no dependency and no time overlap.
+  Median 13 pairs per report; pairs share steps, so they are not independent facts.
+- **Skipped steps:** reuse `skipped_steps`.
 
-## 擱置
+## Deferred
 
-- 時長和定位列的 bool / multi / int 問的是「超過 31.3 s」「在 [t1, t2] 內」這類判斷,和 single /
-  seconds 不是同一個事實。理想是像錯誤列一樣每步都能用每種題型問同一個事實。
+- In the duration and localization rows, bool / multi / int ask a judgement ("longer than
+  31.3 s", "within [t1, t2]") that is not the same fact as single / seconds. Ideally every step
+  could be asked the same fact in every type, as in the error row.

@@ -1,131 +1,152 @@
-# CC4D 題型實驗提案(草稿,2026-10-26)
+# CC4D answer-type experiment proposal (draft, 2026-10-26)
 
-| 研究問題 | 實驗 |
+Chinese version: `docs/cc4d_answer_type_proposal.zh.md`. Both say the same thing.
+
+| Research question | Experiments |
 | :---- | :---- |
-| Q1  每次 call 問更多題,準確率會不會改變?會不會因題型而不同? | E1–E3;E5 延伸到 16 題 |
-| Q2  同一個事實換題型問,準確率會不會改變? | E1(E3 再驗一次) |
-| Q3  模型在各內容上的表現如何? | E1 |
-| Q4  一個 call 裡混合題型,會不會影響同一批題目? | E4 |
-| Q5  題型會不會影響幻覺? | E1–E3 |
+| Q1  Does accuracy change when a call asks more questions? Does the change depend on the answer type? | E1–E3; E5 extends to 16 |
+| Q2  Does accuracy change when the same fact is asked in a different answer type? | E1 (rechecked in E3) |
+| Q3  How does the model do on each content? | E1 |
+| Q4  Does mixing answer types in one call affect the same questions? | E4 |
+| Q5  Does the answer type affect hallucination? | E1–E3 |
 
-- 模型:Gemini 3.5 Flash-Lite
-- 資料:CaptainCook4D,從原始標注另建 benchmark
-- 變因:題數(1 / 4 / 8)、內容(錯誤 / 時長 / 定位)、題型
-- 出題規則見 `docs/cc4d_format_questions.md`,評分規則見 `docs/scoring_rules.md`(中文版
-  `docs/scoring_rules.zh.md`)
+- Model: Gemini 3.5 Flash-Lite
+- Data: CaptainCook4D, a new benchmark built from the raw annotations
+- Variables: question count (1 / 4 / 8), content (error / duration / localization), answer type
+- Question rules: `docs/cc4d_format_questions.md`. Scoring rules: `docs/scoring_rules.md`
 
-## 格子
+## Cells
 
-**事實**是標注對某一步的一項陳述,例如「步驟 X 沒有錯誤」。同一個事實會用該列的每種題型各問
-一次,每次在不同的 call 裡。
+A **fact** is one statement the annotations make about one step, such as "step X has no
+mistake". Each fact is asked once in every answer type of its row, each time in a separate call.
 
-| 內容 \ 題型 | bool | single | multi | seconds | int(計數) | open_text |
+| Content \ type | bool | single | multi | seconds | int (count) | open_text |
 | --- | --- | --- | --- | --- | --- | --- |
-| 錯誤 | 一步 | 一步 | 一步 | — | 一步 | 一步 |
-| 時長 | 一步 | 一步 | 8 步 | 一步 | 8 步 | — |
-| 定位 | 一步 | 一步 | 8 步 | 一步 | 8 步 | — |
+| Error | one step | one step | one step | — | one step | one step |
+| Duration | one step | one step | 8 steps | one step | 8 steps | — |
+| Localization | one step | one step | 8 steps | one step | 8 steps | — |
 
-「一步」是一題問一個步驟,共 11 格,所有實驗都用。「8 步」是一題列出 8 個步驟,共 4 格,每份
-報告每列只夠出一題,所以只出現在 E1。
+"One step" means one question asks about one step: 11 cells, used in every experiment. "8 steps"
+means one question lists 8 steps: 4 cells. Each report has only enough facts per row for one
+such question, so these cells appear in E1 only.
 
-## 設計
+## Design
 
-每份報告的每一列固定 8 個事實 F1–F8。
+Each report has 8 fixed facts per row, F1–F8.
 
-**A 題數(Q1)。** 同樣的 8 個事實,用三種方式問,每個 call 只有一種內容、一種題型:
+**A Question count (Q1).** The same 8 facts are asked three ways. Each call has one content and
+one answer type:
 
-| 實驗 | 每次 call 題數 | 8 個事實要幾個 call |
+| Experiment | Questions per call | Calls for 8 facts |
 | --- | --- | --- |
 | E1 | 1 | 8 |
 | E2 | 4 | 2 |
 | E3 | 8 | 1 |
 
-主實驗上限是 8,因為一步在每列只能出一題,三列都要 16 題只剩 37 份報告,錯誤步驟只有 5%。
+The main experiment stops at 8 because a step gives only one question per row. Requiring 16 in
+all three rows leaves 37 reports, with only 5% error steps.
 
-**A2 題數延伸到 16(E5,Q1)。** HD-EPIC 在 16 題以前看不出題數的影響,所以另外對定位列和
-時長列做到 16 題。每列各用自己的報告(該列至少 16 個可出題步驟),每份固定 16 個事實,用
-k = 1 / 4 / 8 / 16 各跑一次,只用 bool、single、seconds 三種題型。這批報告的影片較長、recipe
-較少,所以只在 E5 內部比較,不和主實驗接成同一條曲線。錯誤列不做:16 題裡平均只有 1–2 題
-有錯。
+**A2 Question count up to 16 (E5, Q1).** HD-EPIC showed no count effect below 16, so the
+localization and duration rows are extended to 16. Each row uses its own reports (at least 16
+usable steps in that row), with 16 fixed facts per report, asked at k = 1 / 4 / 8 / 16, in bool,
+single and seconds only. These reports have longer videos and fewer recipes, so E5 is compared
+only within itself and is not joined to the main curve. The error row is left out: 16 questions
+would hold only 1–2 mistakes on average.
 
-**B 題型與內容(Q2、Q3)。** 用 E1 的結果。題型之間逐題配對比較。內容之間只在 bool 和 single
-內比較,因為只有這兩種題型三列都有;這是描述性比較。
+**B Answer type and content (Q2, Q3).** Uses E1. Answer types are compared item by item, paired.
+Contents are compared only within bool and single, the only types present in all three rows.
+This comparison is descriptive.
 
-**C 混合題型(Q4)。** 目標題 4 題用題型 T,陪襯題 4 題換成該列的其他題型。只對目標題計分,
-和 E3 的同一批題目配對比較。
+**C Mixed answer types (Q4).** Four target questions use type T; the four filler questions use
+the row's other types. Only the targets are scored, paired with the same questions in E3.
 
-| 位置 | E3(單一) | E4(混合),錯誤列、T = bool |
+| Position | E3 (single type) | E4 (mixed), error row, T = bool |
 | --- | --- | --- |
-| 1–4 | F1–F4 bool(目標) | F1–F4 bool(目標) |
-| 5–8 | F5–F8 bool | F5 single、F6 multi、F7 int、F8 open_text |
+| 1–4 | F1–F4 bool (targets) | F1–F4 bool (targets) |
+| 5–8 | F5–F8 bool | F5 single, F6 multi, F7 int, F8 open_text |
 
-錯誤列的陪襯題是其他 4 種題型各一題,時長和定位列是其他 2 種各兩題。陪襯題的題型分配每份
-報告輪替。每格跑兩次(F1–F4 當目標一次,F5–F8 當目標一次);E3 的同一個 call 拆開計分當基準。
+In the error row the fillers are one question each of the other 4 types; in the duration and
+localization rows, two each of the other 2 types. The filler type assignment rotates across
+reports. Each cell runs twice (F1–F4 as targets once, F5–F8 once); the same E3 call, scored in
+halves, is the baseline.
 
-**D 幻覺(Q5)。**
-- 沒做的步驟:每一題都允許回答 `null`。沒做的步驟回答其他內容就是幻覺;有做的步驟回答
-  `null` 記為漏看。只在 E1 問,所以 E2–E4 都用同樣的有畫面事實。
-- 誤報:錯誤列中沒有錯誤的步驟被說成有錯。每種題型、每種題數都會記錄。
+**D Hallucination (Q5).**
+- Not-done steps: every question allows the answer `null`. Any other answer to a not-done step is
+  a hallucination; `null` on a filmed step is a false not-done. Asked in E1 only, so E2–E4 use
+  the same filmed facts.
+- False alarms: an error-row step with no mistake called wrong. Recorded for every type and
+  every question count.
 
-## 實驗
+## Experiments
 
-| ID | 每次 call 題數 | 內容 | call 數 |
+| ID | Questions per call | Contents | Calls |
 | :---- | :---- | :---- | :---- |
-| E1 | 1 | 11 格 × 512 個事實 | 5,632 |
-| E1 | 1 | 4 格 × 64 份報告(一題 8 步) | 256 |
-| E1 | 1 | 108 個沒做的步驟 × 11 格 | 1,188 |
-| E2 | 4 | 11 格 × 512 個事實 | 1,408 |
-| E3 | 8 | 11 格 × 512 個事實 | 704 |
-| E4 | 8 | 11 格 × 2 組目標 × 64 份報告 | 1,408 |
-| | | **主實驗小計** | **10,596** |
-| E5 | 1 / 4 / 8 / 16 | 定位:125 份 × 16 個事實 × 3 種題型 | 8,625 |
-| E5 | 1 / 4 / 8 / 16 | 時長:44 份 × 16 個事實 × 3 種題型 | 3,036 |
-| | | **合計** | **22,257** |
+| E1 | 1 | 11 cells × 512 facts | 5,632 |
+| E1 | 1 | 4 cells × 64 reports (8-step questions) | 256 |
+| E1 | 1 | 108 not-done steps × 11 cells | 1,188 |
+| E2 | 4 | 11 cells × 512 facts | 1,408 |
+| E3 | 8 | 11 cells × 512 facts | 704 |
+| E4 | 8 | 11 cells × 2 target halves × 64 reports | 1,408 |
+| | | **Main subtotal** | **10,596** |
+| E5 | 1 / 4 / 8 / 16 | Localization: 125 reports × 16 facts × 3 types | 8,625 |
+| E5 | 1 / 4 / 8 / 16 | Duration: 44 reports × 16 facts × 3 types | 3,036 |
+| | | **Total** | **22,257** |
 
-主實驗影片平均 12.5 分鐘,合計約 2,210 小時;E5 影片較長(約 20–24 分鐘),合計約 4,100
-小時。全部約 6,300 小時,大約是 HD-EPIC baseline(約 690 小時)的 9 倍。實際花費和執行時間由
-pilot 量測。主實驗每列 512 個事實,準確率在 50% 附近時,95% 區間約 ±4.3 個百分點。
+Main-experiment videos average 12.5 minutes, about 2,210 hours across all calls. E5 videos are
+longer (about 20–24 minutes), about 4,100 hours. About 6,300 hours in all, roughly 9 times the
+HD-EPIC baseline (about 690 hours). Actual cost and run time come from the pilot. With 512 facts
+per row in the main experiment, the 95% interval near 50% accuracy is about ±4.3 points.
 
-## 要報告的結果
+## Results to report
 
-| 問題 | 圖 | 數字 |
+| Question | Figure | Numbers |
 | :---- | :---- | :---- |
-| Q1 | 每列一張折線圖:X 題數,Y 準確率,每種題型一條線;另附成本和 token 圖。E5 另畫一組(k 到 16) | 相對 k = 1 的配對變化;missing / invalid 比例 |
-| Q2 | 每列一張配對點圖:X 題型,Y 準確率,標出隨機和多數答案基準線 | 配對差異與 95% 區間;扣除隨機基準線的準確率;錯誤列分有錯 / 沒錯兩組 |
-| Q3 | 長條圖:X 內容,Y 扣除隨機基準線的準確率 | 描述性 |
-| Q4 | 配對點圖:單一 vs 混合,每種題型一個面板 | 配對變化;對→錯、錯→對的題數 |
-| Q5 | 長條圖:X 題型,Y 幻覺率和誤報率 | 漏看率;`extras` / `extra_claims` |
+| Q1 | Per row, a line chart: X question count, Y accuracy, one line per type; plus cost and token charts. A separate set for E5 (k up to 16) | Paired change from k = 1; missing / invalid rates |
+| Q2 | Per row, a paired dot plot: X type, Y accuracy, with chance and majority baselines | Paired differences with 95% intervals; chance-normalized accuracy; error row split into mistake / no mistake |
+| Q3 | Bar chart: X content, Y chance-normalized accuracy | Descriptive |
+| Q4 | Paired dot plot: single vs mixed, one panel per type | Paired change; counts of right→wrong and wrong→right |
+| Q5 | Bar chart: X type, Y hallucination and false-alarm rates | False not-done rate; `extras` / `extra_claims` |
 
-## 共同控制
+## Common controls
 
-- 固定:模型、temperature 0、prompt 模板、影片(整段錄影到最後一步後 5 秒,fps = 2)、context
-  (`task_name`、`recipe`、`error_definitions`)、選項順序。每個 call 獨立。
-- missing / invalid 算錯。open_text 評審先用約 100 題人工標註驗證。
-- 每支影片權重相同,以影片做 bootstrap;另以每個 recipe 權重相同重算一次。
-- 流程:凍結 ID → 2 份報告 pilot → 檢查解析、評審、成本 → 跑 E1–E5。
+- Fixed: model, temperature 0, prompt template, video (whole recording to 5 s after the last
+  step, fps = 2), context (`task_name`, `recipe`, `error_definitions`), option order. Every call
+  is independent.
+- Missing / invalid count as wrong. The open_text judge is first checked against about 100
+  hand-labelled answers.
+- Every video weighs the same; bootstrap by video. Also recomputed with every recipe weighing the
+  same.
+- Flow: freeze IDs → pilot on 2 reports → check parsing, judge and cost → run E1–E5.
 
-## 資料集準備
+## Dataset preparation
 
-1. **報告:**
-   - 主實驗:每列至少有 8 個可出題步驟,且錯誤列至少 4 個有錯、4 個沒錯的錄影,共 64 份,全部
-     使用。涵蓋 19 個 recipe(每個 1–8 份);影片 3.9–22.7 分鐘;47 份有沒做的步驟,共 108 個。
-   - E5:定位列至少 16 個有畫面步驟的 125 份(10 個 recipe);時長列至少 16 個可出題步驟的
-     44 份(7 個 recipe)。可以和主實驗的報告重疊。
-2. **事實**(固定 seed):
-   - 錯誤列 4 錯 4 對。自然比例只有 21%,有錯的題目會太少,一律答「沒錯」也有 79%。
-   - 時長列隨機 8 步,超過和不到 31.3 秒大致各半。
-   - 定位列隨機 8 個有畫面的步驟。
-   - 沒做的步驟全部收進來。
-   - E5:每份報告每列隨機 16 步;時長列一樣讓超過和不到 31.3 秒大致各半。
-3. **出題:** 依 `docs/cc4d_format_questions.md`。每個事實的選項只產生一次,所有條件共用。
-4. **凍結:** 事實順序、E2/E3/E5 批次、E4 目標組和陪襯輪替、題目 ID、各格基準線。
-5. **驗證:** `video-report validate-data`、洩漏檢查、抽樣確認題目能從畫面回答。
+1. **Reports:**
+   - Main: recordings with at least 8 usable steps in every row and at least 4 steps with and 4
+     without a mistake in the error row: 64, all used. 19 recipes (1–8 reports each); videos
+     3.9–22.7 minutes; 47 reports have not-done steps, 108 in all.
+   - E5: 125 reports with at least 16 filmed steps for localization (10 recipes); 44 reports with
+     at least 16 usable steps for duration (7 recipes). May overlap with the main reports.
+2. **Facts** (fixed seed):
+   - Error row: 4 with a mistake, 4 without. The natural rate is only 21%, which leaves too few
+     mistake questions, and answering "no mistake" everywhere would score 79%.
+   - Duration row: 8 random steps, roughly half above and half below 31.3 s.
+   - Localization row: 8 random filmed steps.
+   - All not-done steps are included.
+   - E5: 16 random steps per report per row; duration again roughly half above 31.3 s.
+3. **Questions:** per `docs/cc4d_format_questions.md`. Options are generated once per fact and
+   shared by every condition.
+4. **Freeze:** fact order, E2/E3/E5 batches, E4 target halves and filler rotation, question IDs,
+   baselines for every cell.
+5. **Validate:** `video-report validate-data`, leak checks, and a sample check that questions can
+   be answered from the footage.
 
-## 擱置
+## Deferred
 
-- 錯誤列超過 8 題:錯誤步驟太少,4 錯 4 對以外的比例只能測誤報。
-- 超過 16 題:定位列要 24 題只剩 12 份報告,都是同一個 recipe。
-- 內容混合:會和題型混合的效果混在一起,而且同一步會互相洩漏。
-- 時長和定位的 multi / int 改成一題一步。
-- E4b 單一陪襯題型:陪襯題 4 題都用同一種題型,找出是哪種題型在影響目標題,另需 6,720 個 call。
-- 順序題和遺漏題。
+- More than 8 questions in the error row: too few mistakes; any ratio other than 4/4 only
+  measures false alarms.
+- More than 16 questions: 24 localization questions leave 12 reports, all one recipe.
+- Mixed content: confounded with type mixing, and the same step leaks across questions.
+- Turning duration and localization multi / int into one-step questions.
+- E4b, single filler type: all 4 fillers in one type, to find which type affects the targets;
+  6,720 more calls.
+- Order and skipped-step questions.
