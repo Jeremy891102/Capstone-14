@@ -1,4 +1,4 @@
-# CC4D answer-type experiment proposal (draft, 2026-10-26)
+# CC4D answer-type experiment proposal (draft, 2026-10-29)
 
 Chinese version: `docs/cc4d_answer_type_proposal.zh.md`. Both say the same thing.
 
@@ -8,11 +8,14 @@ Chinese version: `docs/cc4d_answer_type_proposal.zh.md`. Both say the same thing
 | Q2  Does accuracy change when the same fact is asked in a different answer type? | E1 (rechecked in E3) |
 | Q3  How does the model do on each content? | E1 |
 | Q4  Does mixing answer types in one call affect the same questions? | E4 |
-| Q5  Does the answer type affect hallucination? | E1–E3 |
+| Q5  Do the answer type and question count affect hallucination? Does the not-done step's position in the call matter? | E1–E3, E5 H batches |
+| Q6  Does a question's position in the call affect accuracy? | Every k > 1 batch, forward vs reversed |
 
-- Model: Gemini 3.5 Flash-Lite
+- Models: Gemini 3.5 Flash-Lite first; once it passes the checks, the same questions on Gemini
+  3.6 Flash
 - Data: CaptainCook4D, a new benchmark built from the raw annotations
-- Variables: question count (1 / 4 / 8), content (error / duration / localization), answer type
+- Variables: question count (1 / 4 / 8 / 16), content (error / duration / localization), answer
+  type, question order (forward / reversed)
 - Question rules: `docs/cc4d_format_questions.md`. Scoring rules: `docs/scoring_rules.md`
 
 ## Cells
@@ -72,10 +75,31 @@ halves, is the baseline.
 
 **D Hallucination (Q5).**
 - Not-done steps: every question allows the answer `null`. Any other answer to a not-done step is
-  a hallucination; `null` on a filmed step is a false not-done. Asked in E1 only, so E2–E4 use
-  the same filmed facts.
+  a hallucination; `null` on a filmed step is a false not-done.
+- Tested at every question count: E1 asks one not-done step per question. For k > 1, every
+  original batch gets an **H batch**: one fact is replaced by a not-done step from the same
+  report, the other questions unchanged. The replaced position rotates across reports so every
+  position from 1 to k is covered. Only reports with not-done steps get H batches.
+- Analysis: hallucination rate by question count, by the question's position in the call (how
+  far from the last question) and by the step's position in the recipe (how far from the end of
+  the video). The other k − 1 questions of an H batch are paired with the original batch, to see
+  whether adding a not-done step affects them.
 - False alarms: an error-row step with no mistake called wrong. Recorded for every type and
   every question count.
+- E4 gets no H batches, so the mixed-type comparison has a single variable.
+
+**E Question order (Q6).** Every k > 1 batch (including H batches and E4) runs again with the
+question order reversed; option order stays the same. A question sits at position p in one run
+and k + 1 − p in the other, compared item by item.
+
+**F Caching.** Each video is asked many times, so caching could save the video's input cost, but
+it must first be shown not to change the answers. The pilot compares four conditions on existing
+HD-EPIC questions: A no cache; B an exact repeat of A (measures the model's own instability); C
+explicit cache; D no cache, with the prompt laid out as in C (video and question in separate user
+turns). If C and D disagree no more than A and B, the main runs use caching; otherwise not.
+Explicit caching currently needs a service account on the Vertex project or an AI Studio key;
+without one, no caching. Either way every call logs its cached tokens, to check afterwards
+whether calls that hit the cache answer differently.
 
 ## Experiments
 
@@ -85,17 +109,20 @@ halves, is the baseline.
 | E1 | 1 | 4 cells × 64 reports (8-step questions) | 256 |
 | E1 | 1 | 108 not-done steps × 11 cells | 1,188 |
 | E2 | 4 | 11 cells × 512 facts | 1,408 |
+| E2-H | 4 | 11 cells × 47 reports × 2 batches | 1,034 |
 | E3 | 8 | 11 cells × 512 facts | 704 |
+| E3-H | 8 | 11 cells × 47 reports | 517 |
 | E4 | 8 | 11 cells × 2 target halves × 64 reports | 1,408 |
-| | | **Main subtotal** | **10,596** |
+| | | **Main subtotal** | **12,147** |
 | E5 | 1 / 4 / 8 / 16 | Localization: 125 reports × 16 facts × 3 types | 8,625 |
+| E5-H | 1 / 4 / 8 / 16 | Localization: 63 not-done steps × 3 types (k = 1); 38 reports × 3 types × 7 batches (k > 1) | 987 |
 | E5 | 1 / 4 / 8 / 16 | Duration: 44 reports × 16 facts × 3 types | 3,036 |
-| | | **Total** | **22,257** |
+| E5-H | 1 / 4 / 8 / 16 | Duration: 19 not-done steps × 3 types (k = 1); 12 reports × 3 types × 7 batches (k > 1) | 309 |
+| | | **Forward subtotal** | **25,104** |
+| Reversed | 4 / 8 / 16 | Every k > 1 batch again in reversed order (main 5,071, E5 4,599) | 9,670 |
+| | | **Total per model** | **34,774** |
+| | | **Two models (3.5 Flash-Lite, 3.6 Flash)** | **69,548** |
 
-Main-experiment videos average 12.5 minutes, about 2,210 hours across all calls. E5 videos are
-longer (about 20–24 minutes), about 4,100 hours. About 6,300 hours in all, roughly 9 times the
-HD-EPIC baseline (about 690 hours). Actual cost and run time come from the pilot. With 512 facts
-per row in the main experiment, the 95% interval near 50% accuracy is about ±4.3 points.
 
 ## Results to report
 
@@ -105,7 +132,9 @@ per row in the main experiment, the 95% interval near 50% accuracy is about ±4.
 | Q2 | Per row, a paired dot plot: X type, Y accuracy, with chance and majority baselines | Paired differences with 95% intervals; chance-normalized accuracy; error row split into mistake / no mistake |
 | Q3 | Bar chart: X content, Y chance-normalized accuracy | Descriptive |
 | Q4 | Paired dot plot: single vs mixed, one panel per type | Paired change; counts of right→wrong and wrong→right |
-| Q5 | Bar chart: X type, Y hallucination and false-alarm rates | False not-done rate; `extras` / `extra_claims` |
+| Q5 | Bar chart: X type, Y hallucination and false-alarm rates; line chart: X question count or position, Y hallucination rate | False not-done rate; `extras` / `extra_claims`; paired change of the other questions in H batches |
+| Q6 | Line chart: X question position, Y accuracy, one line each for forward and reversed | Paired change, forward vs reversed |
+| Models | Every figure above with Flash-Lite and 3.6 Flash side by side | Whether the two models reach the same conclusions |
 
 ## Common controls
 
@@ -116,7 +145,8 @@ per row in the main experiment, the 95% interval near 50% accuracy is about ±4.
   hand-labelled answers.
 - Every video weighs the same; bootstrap by video. Also recomputed with every recipe weighing the
   same.
-- Flow: freeze IDs → pilot on 2 reports → check parsing, judge and cost → run E1–E5.
+- Flow: freeze IDs → pilot on 2 reports + cache test → check parsing, judge and cost →
+  Flash-Lite runs E1–E5 → check results → 3.6 Flash runs the same set.
 
 ## Dataset preparation
 
@@ -124,8 +154,9 @@ per row in the main experiment, the 95% interval near 50% accuracy is about ±4.
    - Main: recordings with at least 8 usable steps in every row and at least 4 steps with and 4
      without a mistake in the error row: 64, all used. 19 recipes (1–8 reports each); videos
      3.9–22.7 minutes; 47 reports have not-done steps, 108 in all.
-   - E5: 125 reports with at least 16 filmed steps for localization (10 recipes); 44 reports with
-     at least 16 usable steps for duration (7 recipes). May overlap with the main reports.
+   - E5: 125 reports with at least 16 filmed steps for localization (10 recipes; 38 reports
+     have not-done steps, 63 in all); 44 reports with at least 16 usable steps for duration (7
+     recipes; 12 reports have not-done steps, 19 in all). May overlap with the main reports.
 2. **Facts** (fixed seed):
    - Error row: 4 with a mistake, 4 without. The natural rate is only 21%, which leaves too few
      mistake questions, and answering "no mistake" everywhere would score 79%.
@@ -135,8 +166,9 @@ per row in the main experiment, the 95% interval near 50% accuracy is about ±4.
    - E5: 16 random steps per report per row; duration again roughly half above 31.3 s.
 3. **Questions:** per `docs/cc4d_format_questions.md`. Options are generated once per fact and
    shared by every condition.
-4. **Freeze:** fact order, E2/E3/E5 batches, E4 target halves and filler rotation, question IDs,
-   baselines for every cell.
+4. **Freeze:** fact order, E2/E3/E5 batches, the step and position swapped into each H batch,
+   reversed batches, E4 target halves and filler rotation, question IDs, baselines for every
+   cell.
 5. **Validate:** `video-report validate-data`, leak checks, and a sample check that questions can
    be answered from the footage.
 
@@ -150,3 +182,5 @@ per row in the main experiment, the 95% interval near 50% accuracy is about ±4.
 - E4b, single filler type: all 4 fillers in one type, to find which type affects the targets;
   6,720 more calls.
 - Order and skipped-step questions.
+- Position designs other than reversal (e.g. random shuffles): reversal already moves every
+  question to its mirrored position.
