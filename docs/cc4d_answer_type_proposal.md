@@ -9,7 +9,7 @@ Chinese version: `docs/cc4d_answer_type_proposal.zh.md`. Both say the same thing
 | Q3  How does the model do on each content? | E1 |
 | Q4  Does mixing answer types in one call affect the same questions? | E4 |
 | Q5  Do the answer type and question count affect hallucination? Does the not-done step's position in the call matter? | E1–E3, E5 H batches |
-| Q6  Does a question's position in the call affect accuracy? | Every k > 1 batch, forward vs reversed |
+| Q6  Does a question's position in the call affect accuracy? | Main k = 8 and E5 k = 16 batches, forward vs reversed |
 
 - Models: Gemini 3.5 Flash-Lite first; once it passes the checks, the same questions on Gemini
   3.6 Flash
@@ -88,9 +88,11 @@ halves, is the baseline.
   every question count.
 - E4 gets no H batches, so the mixed-type comparison has a single variable.
 
-**E Question order (Q6).** Every k > 1 batch (including H batches and E4) runs again with the
-question order reversed; option order stays the same. A question sits at position p in one run
-and k + 1 − p in the other, compared item by item.
+**E Question order (Q6).** The largest-k batches (E3 at k = 8 in the main experiment, E5 at
+k = 16, H batches included) run again with the question order reversed; option order stays the
+same. A question sits at position p in one run and k + 1 − p in the other, compared item by item.
+Position effects show most in the longest batches, so smaller k are not reversed. E4 is not
+reversed either: each of its halves is already the target once.
 
 **F Caching.** Each video is asked many times, so caching could save the video's input cost, but
 it must first be shown not to change the answers. The pilot compares four conditions on existing
@@ -114,14 +116,22 @@ whether calls that hit the cache answer differently.
 | E3-H | 8 | 11 cells × 47 reports | 517 |
 | E4 | 8 | 11 cells × 2 target halves × 64 reports | 1,408 |
 | | | **Main subtotal** | **12,147** |
-| E5 | 1 / 4 / 8 / 16 | Localization: 125 reports × 16 facts × 3 types | 8,625 |
-| E5-H | 1 / 4 / 8 / 16 | Localization: 63 not-done steps × 3 types (k = 1); 38 reports × 3 types × 7 batches (k > 1) | 987 |
+| E5 | 1 / 4 / 8 / 16 | Localization: 40 reports × 16 facts × 3 types | 2,760 |
+| E5-H | 1 / 4 / 8 / 16 | Localization: about 20 not-done steps × 3 types (k = 1); about 12 reports × 3 types × 7 batches (k > 1) | about 312 |
 | E5 | 1 / 4 / 8 / 16 | Duration: 44 reports × 16 facts × 3 types | 3,036 |
 | E5-H | 1 / 4 / 8 / 16 | Duration: 19 not-done steps × 3 types (k = 1); 12 reports × 3 types × 7 batches (k > 1) | 309 |
-| | | **Forward subtotal** | **25,104** |
-| Reversed | 4 / 8 / 16 | Every k > 1 batch again in reversed order (main 5,071, E5 4,599) | 9,670 |
-| | | **Total per model** | **34,774** |
-| | | **Two models (3.5 Flash-Lite, 3.6 Flash)** | **69,548** |
+| | | **Forward subtotal** | **about 18,564** |
+| Reversed | 8 / 16 | Largest-k batches again in reversed order (main E3 + E3-H 1,221, E5 k = 16 about 324) | about 1,545 |
+| | | **Total per model** | **about 20,109** |
+| | | **Two models (3.5 Flash-Lite, 3.6 Flash)** | **about 40,218** |
+
+The E5 localization H counts depend on how many not-done steps the 40 sampled reports contain;
+the table estimates them by proportion.
+
+About 5,200 video-hours per model, roughly 7.5 times the HD-EPIC baseline. Rough cost without
+caching, from standard-tier input prices (2026-10-29): Flash-Lite about US$320, 3.6 Flash about
+US$790 plus its thinking tokens. Caching would cut the input cost to roughly 10–20%. The pilot
+measures the actual cost.
 
 
 ## Results to report
@@ -154,9 +164,10 @@ whether calls that hit the cache answer differently.
    - Main: recordings with at least 8 usable steps in every row and at least 4 steps with and 4
      without a mistake in the error row: 64, all used. 19 recipes (1–8 reports each); videos
      3.9–22.7 minutes; 47 reports have not-done steps, 108 in all.
-   - E5: 125 reports with at least 16 filmed steps for localization (10 recipes; 38 reports
-     have not-done steps, 63 in all); 44 reports with at least 16 usable steps for duration (7
-     recipes; 12 reports have not-done steps, 19 in all). May overlap with the main reports.
+   - E5: 125 reports have at least 16 filmed steps for localization (10 recipes, 9–16 each);
+     4 are sampled per recipe, 40 in all, giving 640 facts per type (95% interval about ±3.9
+     points). All 44 reports with at least 16 usable steps for duration are used (7 recipes; 12
+     reports have not-done steps, 19 in all). May overlap with the main reports.
 2. **Facts** (fixed seed):
    - Error row: 4 with a mistake, 4 without. The natural rate is only 21%, which leaves too few
      mistake questions, and answering "no mistake" everywhere would score 79%.
@@ -184,3 +195,5 @@ whether calls that hit the cache answer differently.
 - Order and skipped-step questions.
 - Position designs other than reversal (e.g. random shuffles): reversal already moves every
   question to its mirrored position.
+- Reversal at smaller k, and of E4.
+- The other 85 E5 localization reports.
