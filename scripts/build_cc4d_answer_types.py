@@ -4,7 +4,7 @@
 Rules: docs/cc4d_format_questions.md. Design and call counts: docs/cc4d_answer_type_proposal.md.
 
 Usage: python scripts/build_cc4d_answer_types.py <cc4d annotation dir> data/cc4d_answer_types_v1 \
-         [--dense data/cc4d_dense_v1] [--seed 0] [--recordings 1_7 ...]
+         [--dense data/cc4d_dense_v1] [--seed 0] [--recordings 1_7 ...] [--video-uri '{rid}.mp4']
 
 Output: one benchmark directory per group under the output dir. A group is run with a fixed
 batch size (the method `batched`), so the field order of a report is its call order:
@@ -66,6 +66,7 @@ ap.add_argument("out")
 ap.add_argument("--dense", default="data/cc4d_dense_v1")
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--recordings", nargs="*")
+ap.add_argument("--video-uri", default="{rid}_360p.mp4", help="video file name; the VM uses {rid}.mp4")
 args = ap.parse_args()
 A, DENSE, OUT = pathlib.Path(args.annotations), pathlib.Path(args.dense), pathlib.Path(args.out)
 
@@ -140,7 +141,7 @@ def load(rid):
     assert len({s["name"] for s in steps}) == len(steps), f"{rid}: repeated step names"
     d = dense[rid]
     return {
-        "rid": rid, "steps": steps, "video": d["input"]["videos"][0], "context": d["input"]["context"],
+        "rid": rid, "steps": steps, "video": {**d["input"]["videos"][0], "uri": args.video_uri.format(rid=rid)}, "context": d["input"]["context"],
         "end": d["input"]["videos"][0]["time_range"]["end"],
         "anc": ancestors(d["input"]["context"]["recipe"]),
     }  # fmt: skip
