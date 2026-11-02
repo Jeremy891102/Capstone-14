@@ -78,8 +78,10 @@ request.** Only the parts listed below are actually rendered into one.
 | `input.context` | optional `{str: str\|int\|float\|bool}`. **Candidates** for model context: a key is rendered only if the experiment whitelists it in `prompt.context_keys` |
 | `fields[]` | ≥ 1; field `id`s unique within the report, stable across dataset versions |
 | `fields[].question` | non-empty |
-| `fields[].answer_type` | `single_choice`, `multi_choice`, `bool`, `int` or `seconds`. Anything else is rejected at load time. **Only `single_choice` is scored so far**; `evaluate` refuses runs with other types |
+| `fields[].answer_type` | `single_choice`, `multi_choice`, `bool`, `int`, `seconds` or `open_text`. Anything else is rejected at load time. **Only `single_choice` is scored so far**; `evaluate` refuses runs with other types |
 | `fields[].choices` | `single_choice` / `multi_choice`: ordered list of 2–702 unique non-empty strings, labelled A..Z, then AA..AZ, BA..ZZ (choice 26 is `AA`). Other types: omit (must be empty) |
+| `fields[].exclusive_choice` | optional, `multi_choice` only: the text of one choice that may only be answered on its own (CC4D "No mistake"). The target for "none" is then that label, and `[]` is rejected |
+| `fields[].timestamp` | optional, default `false`, `seconds` only: the answer is a point in the video, not a length of time. The step length for its tolerance goes in the ground-truth `evidence` |
 | `fields[].allow_not_visible` | optional, default `false`. The model may answer `"not_visible"` (hallucination checks). Set it on every field of a report, not only the trap fields, or its presence gives the answer away |
 | `source` | provenance (`dataset`, `split`, `original_ids`, `annotation_refs`). **Never sent to the model** |
 | `metadata` | free-form bookkeeping. **Never sent to the model** |
@@ -139,7 +141,7 @@ directory specific to one machine. To change a video location, start a new run.
 | key | rules |
 |---|---|
 | `report_id`, `field_id` | must reference an existing report/field; a `(report_id, field_id)` pair may appear only once |
-| `target` | by `answer_type`: `single_choice` → one choice label (`A`, …, `Z`, `AA`, …); `multi_choice` → list of distinct labels (`[]` = none); `bool` → `true`/`false`; `int` → integer; `seconds` → number ≥ 0. With `allow_not_visible`, any type may instead be `"not_visible"` |
+| `target` | by `answer_type`: `single_choice` → one choice label (`A`, …, `Z`, `AA`, …), or a non-empty list of distinct labels when any one of them is correct; `multi_choice` → list of distinct labels (`[]` = none); `bool` → `true`/`false`; `int` → integer; `seconds` → number ≥ 0; `open_text` → list of reference answers (`[]` = none). With `allow_not_visible`, any type may instead be `"not_visible"` |
 | `target_text` | optional, `single_choice` letter targets only: must equal `choices[target]` exactly (catches choice reordering) |
 | `evidence` | privileged annotation evidence. Read only by evaluation, never by methods, prompt builders or providers |
 

@@ -78,10 +78,13 @@ def _answer_hint(f: FieldSpec) -> str:
     letters = "/".join(f.letters())
     hint = {
         "single_choice": f"one letter: {letters}",
-        "multi_choice": f"list of letters from {letters}, [] if none",
+        "multi_choice": f"list of letters from {letters}, [] if none"
+        if f.exclusive_choice is None
+        else f'list of letters from {letters}; "{f.exclusive_choice}" only on its own',
         "bool": "true or false",
         "int": "integer",
         "seconds": "number of seconds",
+        "open_text": "short text answer",
     }[f.answer_type]
     return f"<{hint}" + (' or "not_visible"' if f.allow_not_visible else "") + ">"
 

@@ -39,20 +39,23 @@ These six outcomes apply to every type and are unchanged from the current scorer
 | `invalid_output` | The whole response is unusable (empty, invalid JSON, duplicate keys, not an object) |
 | `not_executed` | No successful provider call covered this field |
 
-## Not-done steps (`null`)
+## Not-done steps (`not_visible`)
 
 Decided 2026-10-26 for the CC4D answer-type experiment. A field about one step may allow
-`null`, meaning "this step was not done in the video". The question says so in the same
-words for every type.
+`"not_visible"`, meaning "this step was not done in the video". The question says so in the
+same words for every type. (First drafted as JSON `null`, which a parser could confuse with a
+missing answer; the data contract already had `not_visible`.)
 
-- **Valid answer:** `null` is valid for every type when the field allows it.
-- **Correct:** `null` is correct only when the target is `null` (a Missing Step with no
-  footage). Any other answer to such a field is incorrect: a **hallucination**.
-- `null` on a filmed step is incorrect, recorded as a **false not-done**.
+- **Valid answer:** `"not_visible"` is valid for every type when the field allows it
+  (`allow_not_visible`).
+- **Correct:** `"not_visible"` is correct only when the target is `"not_visible"` (a Missing
+  Step with no footage). Any other answer to such a field is incorrect: a **hallucination**.
+- `"not_visible"` on a filmed step is incorrect, recorded as a **false not-done**.
 - Report both rates on their own, next to accuracy.
 - Fields that list several steps as options (CC4D duration and localization
-  `multi_choice` / `int`) do not use `null`: a not-done step can appear as an option, and
-  selecting or counting it is the hallucination.
+  `multi_choice` / `int`) do not allow `not_visible`. A not-done step could appear as an option,
+  and selecting or counting it would be the hallucination; the CC4D experiment lists filmed
+  steps only.
 
 ## Rules per type
 
@@ -159,7 +162,7 @@ step "…"? Answer "none" if the step was done as written."
 | filmed, at least one Technique / Preparation / Measurement / Timing / Temperature error | 1,118 | asked, reference = the descriptions of those errors only (Order descriptions dropped) |
 | filmed, only Order errors | 334 | not asked (order needs the whole video, not the step) |
 | Other | 6 | not asked |
-| Missing Step, no footage | 237 | asked as hallucination items, target `null` (see "Not-done steps" above) |
+| Missing Step, no footage | 237 | asked as hallucination items, target `not_visible` (see "Not-done steps" above) |
 | Missing Step but has footage | 3 | not asked (contradictory annotation) |
 | no footage, no Missing Step tag | 6 | not asked (optional step "Top with more parmesan if desired") |
 

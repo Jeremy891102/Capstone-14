@@ -23,6 +23,7 @@ from video_report.benchmarks.schema import (
     FieldSpec,
     FieldTarget,
     Report,
+    choice_letter,
     letter_index,
 )
 from video_report.io_utils import iter_jsonl, read_json
@@ -134,7 +135,7 @@ def validate_targets(
                 f"target for ({t.report_id}, {t.field_id}) is {t.target!r}; {err}"
             )
         if t.target_text is not None:
-            if spec.answer_type != "single_choice" or t.target == NOT_VISIBLE:
+            if spec.answer_type != "single_choice" or not _is_letter_target(t.target):
                 raise DataValidationError(
                     f"target_text for ({t.report_id}, {t.field_id}) is only checked for "
                     f"single_choice letter targets; put readable answers in evidence"
@@ -156,12 +157,20 @@ def validate_targets(
     return index
 
 
+def _is_letter_target(v: Any) -> bool:
+    return isinstance(v, str) and v != NOT_VISIBLE
+
+
 def _target_error(spec: FieldSpec, t: FieldTarget) -> str | None:
     """Why ``t.target`` is not a valid target for ``spec``, or None."""
     v = t.target
     if v == NOT_VISIBLE:
         return None if spec.allow_not_visible else "field does not allow not_visible"
     if spec.answer_type == "single_choice":
+        if isinstance(v, list):  # several letters, any one of them is correct
+            ok = bool(v) and len(set(v)) == len(v)
+            ok = ok and all((i := letter_index(x)) is not None and i < len(spec.choices) for x in v)
+            return None if ok else f"expected one of {spec.letters()} or a list of them"
         idx = letter_index(v) if isinstance(v, str) else None
         ok = idx is not None and idx < len(spec.choices)
         return None if ok else f"expected one of {spec.letters()}"
@@ -170,7 +179,17 @@ def _target_error(spec: FieldSpec, t: FieldTarget) -> str | None:
         if not isinstance(v, list) or len(set(v)) != len(v):
             return msg
         ok = all((i := letter_index(x)) is not None and i < len(spec.choices) for x in v)
-        return None if ok else msg
+        if not ok:
+            return msg
+        if spec.exclusive_choice is not None:
+            names = [c.strip() for c in spec.choices]
+            ex = choice_letter(names.index(spec.exclusive_choice.strip()))
+            if v == [] or (ex in v and len(v) > 1):
+                return f"{ex} ({spec.exclusive_choice}) is answered alone; [] is not allowed"
+        return None
+    if spec.answer_type == "open_text":
+        ok = isinstance(v, list) and all(isinstance(x, str) and x.strip() for x in v)
+        return None if ok else "expected a list of non-empty reference answers ([] = none)"
     if spec.answer_type == "bool":
         return None if isinstance(v, bool) else "expected true or false"
     if spec.answer_type == "int":

@@ -9,10 +9,11 @@ Chinese version: `docs/cc4d_answer_type_proposal.zh.md`. Both say the same thing
 | Q3  How does the model do on each content? | E1 |
 | Q4  Does mixing answer types in one call affect the same questions? | E4 |
 | Q5  Do the answer type and question count affect hallucination? Does the not-done step's position in the call matter? | E1–E3, E5 H batches |
-| Q6  Does a question's position in the call affect accuracy? | Main k = 8 and E5 k = 16 batches, forward vs reversed |
+| Q6  Does a question's position in the call affect accuracy? | Every k > 1 batch, forward vs reversed |
 
-- Models: Gemini 3.5 Flash-Lite first; once it passes the checks, the same questions on Gemini
-  3.6 Flash
+- Models: Gemini 3.5 Flash-Lite first; once it passes the checks, the same questions on a second
+  Gemini model (Gemini 4 Argon or 3.6 Flash, the mentor decides); plus an open-weight model,
+  Qwen3-VL (8B, 32B if memory allows), run on the VM
 - Data: CaptainCook4D, a new benchmark built from the raw annotations
 - Variables: question count (1 / 4 / 8 / 16), content (error / duration / localization), answer
   type, question order (forward / reversed)
@@ -74,8 +75,8 @@ reports. Each cell runs twice (F1–F4 as targets once, F5–F8 once); the same 
 halves, is the baseline.
 
 **D Hallucination (Q5).**
-- Not-done steps: every question allows the answer `null`. Any other answer to a not-done step is
-  a hallucination; `null` on a filmed step is a false not-done.
+- Not-done steps: every question allows the answer `not_visible`. Any other answer to a not-done step is
+  a hallucination; `not_visible` on a filmed step is a false not-done.
 - Tested at every question count: E1 asks one not-done step per question. For k > 1, every
   original batch gets an **H batch**: one fact is replaced by a not-done step from the same
   report, the other questions unchanged. The replaced position rotates across reports so every
@@ -88,11 +89,9 @@ halves, is the baseline.
   every question count.
 - E4 gets no H batches, so the mixed-type comparison has a single variable.
 
-**E Question order (Q6).** The largest-k batches (E3 at k = 8 in the main experiment, E5 at
-k = 16, H batches included) run again with the question order reversed; option order stays the
-same. A question sits at position p in one run and k + 1 − p in the other, compared item by item.
-Position effects show most in the longest batches, so smaller k are not reversed. E4 is not
-reversed either: each of its halves is already the target once.
+**E Question order (Q6).** Every k > 1 batch (including H batches and E4) runs again with the
+question order reversed; option order stays the same. A question sits at position p in one run
+and k + 1 − p in the other, compared item by item.
 
 **F Caching.** Each video is asked many times, so caching could save the video's input cost, but
 it must first be shown not to change the answers. The pilot compares four conditions on existing
@@ -117,21 +116,19 @@ whether calls that hit the cache answer differently.
 | E4 | 8 | 11 cells × 2 target halves × 64 reports | 1,408 |
 | | | **Main subtotal** | **12,147** |
 | E5 | 1 / 4 / 8 / 16 | Localization: 40 reports × 16 facts × 3 types | 2,760 |
-| E5-H | 1 / 4 / 8 / 16 | Localization: about 20 not-done steps × 3 types (k = 1); about 12 reports × 3 types × 7 batches (k > 1) | about 312 |
+| E5-H | 1 / 4 / 8 / 16 | Localization: 12 not-done steps × 3 types (k = 1); 8 reports × 3 types × 7 batches (k > 1) | 204 |
 | E5 | 1 / 4 / 8 / 16 | Duration: 44 reports × 16 facts × 3 types | 3,036 |
 | E5-H | 1 / 4 / 8 / 16 | Duration: 19 not-done steps × 3 types (k = 1); 12 reports × 3 types × 7 batches (k > 1) | 309 |
-| | | **Forward subtotal** | **about 18,564** |
-| Reversed | 8 / 16 | Largest-k batches again in reversed order (main E3 + E3-H 1,221, E5 k = 16 about 324) | about 1,545 |
-| | | **Total per model** | **about 20,109** |
-| | | **Two models (3.5 Flash-Lite, 3.6 Flash)** | **about 40,218** |
+| | | **Forward subtotal** | **18,456** |
+| Reversed | 4 / 8 / 16 | Every k > 1 batch again in reversed order (main 5,071, E5 2,184) | 7,255 |
+| | | **Total per model** | **25,711** |
+| | | **Two Gemini models** | **51,422** |
 
-The E5 localization H counts depend on how many not-done steps the 40 sampled reports contain;
-the table estimates them by proportion.
-
-About 5,200 video-hours per model, roughly 7.5 times the HD-EPIC baseline. Rough cost without
-caching, from standard-tier input prices (2026-10-29): Flash-Lite about US$320, 3.6 Flash about
-US$790 plus its thinking tokens. Caching would cut the input cost to roughly 10–20%. The pilot
-measures the actual cost.
+About 6,700 video-hours per model, roughly 9.7 times the HD-EPIC baseline. Rough cost without
+caching, from standard-tier input prices (2026-10-29): Flash-Lite about US$410, 3.6 Flash about
+US$1,030, Argon about US$2,730, plus thinking tokens for the last two. Caching would cut the
+input cost to roughly 10–20%. Qwen runs on our own VM, with no API cost. The pilot measures the
+actual cost.
 
 
 ## Results to report
@@ -144,7 +141,7 @@ measures the actual cost.
 | Q4 | Paired dot plot: single vs mixed, one panel per type | Paired change; counts of right→wrong and wrong→right |
 | Q5 | Bar chart: X type, Y hallucination and false-alarm rates; line chart: X question count or position, Y hallucination rate | False not-done rate; `extras` / `extra_claims`; paired change of the other questions in H batches |
 | Q6 | Line chart: X question position, Y accuracy, one line each for forward and reversed | Paired change, forward vs reversed |
-| Models | Every figure above with Flash-Lite and 3.6 Flash side by side | Whether the two models reach the same conclusions |
+| Models | Every figure above with the models side by side | Whether the models reach the same conclusions |
 
 ## Common controls
 
@@ -156,7 +153,8 @@ measures the actual cost.
 - Every video weighs the same; bootstrap by video. Also recomputed with every recipe weighing the
   same.
 - Flow: freeze IDs → pilot on 2 reports + cache test → check parsing, judge and cost →
-  Flash-Lite runs E1–E5 → check results → 3.6 Flash runs the same set.
+  Flash-Lite runs E1–E5 → check results → the second Gemini model runs the same set; Qwen runs
+  separately.
 
 ## Dataset preparation
 
@@ -165,8 +163,8 @@ measures the actual cost.
      without a mistake in the error row: 64, all used. 19 recipes (1–8 reports each); videos
      3.9–22.7 minutes; 47 reports have not-done steps, 108 in all.
    - E5: 125 reports have at least 16 filmed steps for localization (10 recipes, 9–16 each);
-     4 are sampled per recipe, 40 in all, giving 640 facts per type (95% interval about ±3.9
-     points). All 44 reports with at least 16 usable steps for duration are used (7 recipes; 12
+     4 are sampled per recipe, 40 in all (8 have not-done steps, 12 in all), giving 640 facts
+     per type (95% interval about ±3.9 points). All 44 reports with at least 16 usable steps for duration are used (7 recipes; 12
      reports have not-done steps, 19 in all). May overlap with the main reports.
 2. **Facts** (fixed seed):
    - Error row: 4 with a mistake, 4 without. The natural rate is only 21%, which leaves too few
@@ -195,5 +193,4 @@ measures the actual cost.
 - Order and skipped-step questions.
 - Position designs other than reversal (e.g. random shuffles): reversal already moves every
   question to its mirrored position.
-- Reversal at smaller k, and of E4.
 - The other 85 E5 localization reports.

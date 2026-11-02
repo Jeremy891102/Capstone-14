@@ -53,7 +53,7 @@
 | 只有 Order 錯誤 | 334 | 排除(不能當作沒有錯誤) |
 | Other | 6 | 排除 |
 | 參考描述太模糊(清單見 `scoring_rules.zh.md`) | 13 | 排除 |
-| Missing Step,沒有畫面 | 237 | 幻覺題,答案 `null` |
+| Missing Step,沒有畫面 | 237 | 幻覺題,答案 `not_visible` |
 | Missing Step 但有畫面 | 3 | 排除 |
 | 沒有畫面、沒有 Missing Step | 6 | 排除 |
 
@@ -99,10 +99,11 @@
 
 - **來源:** Missing Step 且沒有畫面的步驟,題庫共 237 個;主實驗的 64 份報告中有 108 個(47 份)。
   它們在 recipe 裡真實存在,只能靠影片判斷。
-- **一題一步:** 每題附 "If the step was not done in the video, answer null."。沒做的步驟答其他
-  內容是幻覺;有做的步驟答 `null` 是漏看。
-- **一題 8 步:** 沒做的步驟可當選項,選了或算進去就是幻覺。
-- 只在 E1 問。錯誤列另外看誤報(沒錯的步驟說成有錯)、`extras`、`extra_claims`。
+- **一題一步:** 每題附 "If the step was not done in the video, answer \"not_visible\"."。沒做的步驟
+  答其他內容是幻覺;有做的步驟答 `not_visible` 是漏看。每題每種題型都允許。
+- **一題 8 步:** 選項只放有畫面的步驟,不量幻覺(幻覺由一題一步的格子量)。
+- **每種題數都問:** E1 一題問一個沒做的步驟;k > 1 時用 H 批次,把一批裡的一個事實換成沒做的
+  步驟(見提案)。錯誤列另外看誤報(沒錯的步驟說成有錯)、`extras`、`extra_claims`。
 
 ## 補充內容(不進主矩陣)
 

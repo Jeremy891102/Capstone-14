@@ -36,18 +36,19 @@
 | `invalid_output` | 整個回應無法使用(空的、不是合法 JSON、key 重複、不是物件) |
 | `not_executed` | 沒有任何成功的 provider call 涵蓋這個欄位 |
 
-## 沒做的步驟(`null`)
+## 沒做的步驟(`not_visible`)
 
-2026-10-26 為 CC4D 題型實驗決定。問單一步驟的欄位可以允許回答 `null`,意思是「影片裡沒有做這一
-步」。每種題型的題目都用同一句話說明這一點。
+2026-10-26 為 CC4D 題型實驗決定。問單一步驟的欄位可以允許回答 `"not_visible"`,意思是「影片裡沒有
+做這一步」。每種題型的題目都用同一句話說明這一點。(最初寫成 JSON `null`,但解析器可能把它和
+沒有回答搞混;資料格式本來就有 `not_visible`。)
 
-- **有效答案:** 欄位允許時,`null` 在每種題型都是有效答案。
-- **正確:** 只有答案是 `null` 時(Missing Step、沒有畫面),回答 `null` 才算對。這類欄位回答其他
+- **有效答案:** 欄位允許時(`allow_not_visible`),`"not_visible"` 在每種題型都是有效答案。
+- **正確:** 只有答案是 `"not_visible"` 時(Missing Step、沒有畫面),回答 `"not_visible"` 才算對。這類欄位回答其他
   任何內容都算錯,記為**幻覺**。
-- 有畫面的步驟回答 `null` 算錯,記為**漏看**。
+- 有畫面的步驟回答 `"not_visible"` 算錯,記為**漏看**。
 - 兩種比例都要在準確率旁邊單獨報告。
-- 一題列出多個步驟當選項的欄位(CC4D 時長和定位的 `multi_choice` / `int`)不使用 `null`:沒做的
-  步驟可以是選項之一,選了或算進去就是幻覺。
+- 一題列出多個步驟當選項的欄位(CC4D 時長和定位的 `multi_choice` / `int`)不允許 `not_visible`。
+  沒做的步驟可以是選項之一,選了或算進去就是幻覺;CC4D 實驗的選項只放有畫面的步驟。
 
 ## 各題型規則
 
@@ -141,7 +142,7 @@ the step was done as written."
 | 有畫面,至少有一個 Technique / Preparation / Measurement / Timing / Temperature 錯誤 | 1,118 | 出題,參考答案只用這幾類錯誤的描述(Order 的描述不用) |
 | 有畫面,只有 Order 錯誤 | 334 | 不出(順序要看整支影片,不是看這一步) |
 | Other | 6 | 不出 |
-| Missing Step,沒有畫面 | 237 | 當幻覺題,答案 `null`(見上方「沒做的步驟」) |
+| Missing Step,沒有畫面 | 237 | 當幻覺題,答案 `not_visible`(見上方「沒做的步驟」) |
 | Missing Step 但有畫面 | 3 | 不出(標注矛盾) |
 | 沒有畫面、沒有 Missing Step 標籤 | 6 | 不出(選做步驟 "Top with more parmesan if desired") |
 

@@ -33,7 +33,12 @@ SCHEMA_VERSION = "video_report.v1"
 # Anything else is rejected at load time instead of being scored with the wrong rule. Only
 # single_choice has a scorer so far; evaluation refuses runs with other types.
 CHOICE_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice", "multi_choice"})
-SUPPORTED_ANSWER_TYPES: frozenset[str] = CHOICE_ANSWER_TYPES | {"bool", "int", "seconds"}
+SUPPORTED_ANSWER_TYPES: frozenset[str] = CHOICE_ANSWER_TYPES | {
+    "bool",
+    "int",
+    "seconds",
+    "open_text",
+}
 SCORED_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice"})
 
 # Target (and accepted answer) for a field with allow_not_visible when the video cannot tell.
@@ -129,14 +134,28 @@ class FieldSpec(StrictModel):
     question: str = Field(min_length=1)
     answer_type: str
     # Ordered. Choice i is presented to the model as letter chr(65 + i). Required for
-    # single_choice / multi_choice, must be empty for bool / int / seconds.
+    # single_choice / multi_choice, must be empty for the other types.
     choices: list[str] = Field(default_factory=list)
     # The model may answer "not_visible" (hallucination checks). Set it on every field of a
     # report, not only the trap fields, or its presence gives the answer away.
     allow_not_visible: bool = False
+    # multi_choice only: this choice (given by its text) may only be answered on its own, such
+    # as "No mistake". The target for "none" is then that label, never [].
+    exclusive_choice: str | None = None
+    # seconds only: the answer is a point in the video (a timestamp), not a length of time.
+    timestamp: bool = False
 
     @model_validator(mode="after")
     def _check(self) -> FieldSpec:
+        if self.exclusive_choice is not None and (
+            self.answer_type != "multi_choice"
+            or self.exclusive_choice.strip() not in [c.strip() for c in self.choices]
+        ):
+            raise ValueError(
+                f"field {self.id!r}: exclusive_choice must be one of the choices of a multi_choice"
+            )
+        if self.timestamp and self.answer_type != "seconds":
+            raise ValueError(f"field {self.id!r}: timestamp is only valid for seconds")
         if self.answer_type not in SUPPORTED_ANSWER_TYPES:
             raise ValueError(
                 f"field {self.id!r}: unsupported answer_type {self.answer_type!r}; "
@@ -200,8 +219,10 @@ class FieldTarget(StrictModel):
 
     report_id: Id
     field_id: Id
-    # By answer_type: single_choice -> choice letter (Inspect-style); multi_choice -> list of
-    # distinct letters ([] = none); bool; int; seconds -> number >= 0. Any type with
+    # By answer_type: single_choice -> choice letter (Inspect-style), or a non-empty list of
+    # distinct letters when any of them is correct; multi_choice -> list of distinct letters
+    # ([] = none, or the exclusive label if the field has one); bool; int; seconds -> number
+    # >= 0; open_text -> list of reference answers ([] = none). Any type with
     # allow_not_visible may instead be "not_visible".
     target: StrictBool | StrictInt | StrictFloat | StrictStr | list[StrictStr]
     # Optional single_choice cross-check: if given, must equal choices[target] exactly.

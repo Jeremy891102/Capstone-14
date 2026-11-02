@@ -58,7 +58,7 @@ hallucination item.
 | Only Order mistakes | 334 | excluded (cannot count as no mistake) |
 | Other | 6 | excluded |
 | Reference too vague (list in `scoring_rules.md`) | 13 | excluded |
-| Missing Step, no footage | 237 | hallucination item, target `null` |
+| Missing Step, no footage | 237 | hallucination item, target `not_visible` |
 | Missing Step but has footage | 3 | excluded |
 | No footage, no Missing Step tag | 6 | excluded |
 
@@ -107,12 +107,13 @@ does not leak the time position.
 
 - **Source:** Missing Step tags with no footage: 237 in the pool; 108 in the 64 main reports (47
   reports). These are real recipe steps, so only the video tells they were skipped.
-- **One-step questions:** each adds "If the step was not done in the video, answer null." Any
-  other answer to a not-done step is a hallucination; `null` on a filmed step is a false
-  not-done.
-- **8-step questions:** a not-done step may be an option; choosing or counting it is the
-  hallucination.
-- Asked in E1 only. The error row also tracks false alarms (a step with no mistake called wrong),
+- **One-step questions:** each adds "If the step was not done in the video, answer \"not_visible\"."
+  Any other answer to a not-done step is a hallucination; `not_visible` on a filmed step is a
+  false not-done. Every question of every type allows it.
+- **8-step questions:** options are filmed steps only; hallucination is measured by the
+  one-step cells.
+- **Asked at every question count:** E1 asks each not-done step alone; for k > 1, H batches swap
+  one fact in a batch for a not-done step (see the proposal). The error row also tracks false alarms (a step with no mistake called wrong),
   `extras` and `extra_claims`.
 
 ## Supplementary content (outside the main matrix)

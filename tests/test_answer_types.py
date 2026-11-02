@@ -22,6 +22,8 @@ def _report(allow_not_visible: bool = False) -> dict:
         {"id": "n", "question": "How many?", "answer_type": "int"},
         {"id": "dur", "question": "How long?", "answer_type": "seconds"},
         {"id": "tags", "question": "Mistakes?", "answer_type": "multi_choice", "choices": TAGS},
+        {"id": "any", "question": "Which?", "answer_type": "single_choice", "choices": TAGS},
+        {"id": "txt", "question": "What differed?", "answer_type": "open_text"},
     ]
     for f in r["fields"]:
         f["allow_not_visible"] = allow_not_visible
@@ -34,12 +36,19 @@ def _check(targets: dict[str, Any], allow_not_visible: bool = False) -> None:
     validate_targets([report], rows, {"r1": list(targets)})
 
 
-GOOD = {"ok": False, "n": 3, "dur": 42.5, "tags": ["B", "A"]}
+GOOD = {
+    "ok": False,
+    "n": 3,
+    "dur": 42.5,
+    "tags": ["B", "A"],
+    "any": ["A", "C"],
+    "txt": ["too much salt"],
+}
 
 
 def test_valid_targets_per_type() -> None:
     _check(GOOD)
-    _check({**GOOD, "dur": 0, "tags": []})
+    _check({**GOOD, "dur": 0, "tags": [], "any": "B", "txt": []})
 
 
 @pytest.mark.parametrize(
@@ -54,6 +63,11 @@ def test_valid_targets_per_type() -> None:
         ("tags", "A"),
         ("tags", ["A", "A"]),
         ("tags", ["D"]),
+        ("any", []),
+        ("any", ["A", "A"]),
+        ("any", ["D"]),
+        ("txt", "too much salt"),
+        ("txt", [""]),
         ("ok", "not_visible"),
     ],
 )
@@ -64,6 +78,27 @@ def test_invalid_targets_rejected(field: str, bad: Any) -> None:
 
 def test_not_visible_only_when_allowed() -> None:
     _check({k: "not_visible" for k in GOOD}, allow_not_visible=True)
+
+
+def test_exclusive_choice_and_timestamp() -> None:
+    r = _report()
+    r["fields"][3]["exclusive_choice"] = "Missing Step"
+    r["fields"][2]["timestamp"] = True
+    report = parse_report(r)
+    ok = [FieldTarget(report_id="r1", field_id="tags", target=["C"])]
+    validate_targets([report], ok, {"r1": ["tags"]})
+    for bad in ([], ["C", "A"]):
+        rows = [FieldTarget(report_id="r1", field_id="tags", target=bad)]
+        with pytest.raises(DataValidationError, match="answered alone"):
+            validate_targets([report], rows, {"r1": ["tags"]})
+    assert json.loads(render_answer_format(report.fields))["tags"].endswith("only on its own>")
+    r["fields"][0]["timestamp"] = True  # bool cannot be a timestamp
+    with pytest.raises(DataValidationError, match="timestamp is only valid"):
+        parse_report(r)
+    r = _report()
+    r["fields"][3]["exclusive_choice"] = "nope"
+    with pytest.raises(DataValidationError, match="exclusive_choice"):
+        parse_report(r)
 
 
 def test_choices_rules() -> None:
@@ -92,6 +127,8 @@ def test_rendering_per_type() -> None:
         "n": '<integer or "not_visible">',
         "dur": '<number of seconds or "not_visible">',
         "tags": '<list of letters from A/B/C, [] if none or "not_visible">',
+        "any": '<one letter: A/B/C or "not_visible">',
+        "txt": '<short text answer or "not_visible">',
     }
     text = render_questions(fields)
     assert "Q1. [field_id: ok]\nQuestion: Done correctly?\n\nQ2." in text
