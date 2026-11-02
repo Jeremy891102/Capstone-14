@@ -78,9 +78,12 @@ def _answer_hint(f: FieldSpec) -> str:
     letters = "/".join(f.letters())
     hint = {
         "single_choice": f"one letter: {letters}",
-        "multi_choice": f"list of letters from {letters}, [] if none"
+        "multi_choice": f'JSON list of letters from {letters}, e.g. ["A", "C"], [] if none'
         if f.exclusive_choice is None
-        else f'list of letters from {letters}; "{f.exclusive_choice}" only on its own',
+        else (
+            f'JSON list of letters from {letters}, e.g. ["A", "C"]; '
+            f'{f.exclusive_letter()} ("{f.exclusive_choice}") only on its own'
+        ),
         "bool": "true or false",
         "int": "integer",
         "seconds": "number of seconds",
@@ -89,8 +92,18 @@ def _answer_hint(f: FieldSpec) -> str:
     return f"<{hint}" + (' or "not_visible"' if f.allow_not_visible else "") + ">"
 
 
+# Letters and text are JSON strings, so their placeholder is quoted. The other types are bare JSON
+# values; a quoted placeholder there made models answer "9" or "F" and lose the answer.
+_QUOTED = frozenset({"single_choice", "open_text"})
+
+
 def render_answer_format(fields: Sequence[FieldSpec]) -> str:
-    return json.dumps({f.id: _answer_hint(f) for f in fields}, indent=2)
+    rows = [
+        f"  {json.dumps(f.id)}: " + (json.dumps(h) if f.answer_type in _QUOTED else h)
+        for f in fields
+        for h in [_answer_hint(f)]
+    ]
+    return "{\n" + ",\n".join(rows) + "\n}"
 
 
 def render_context(context: Mapping[str, ContextValue], keys: Sequence[str]) -> str:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import pytest
@@ -91,7 +90,7 @@ def test_exclusive_choice_and_timestamp() -> None:
         rows = [FieldTarget(report_id="r1", field_id="tags", target=bad)]
         with pytest.raises(DataValidationError, match="answered alone"):
             validate_targets([report], rows, {"r1": ["tags"]})
-    assert json.loads(render_answer_format(report.fields))["tags"].endswith("only on its own>")
+    assert 'C ("Missing Step") only on its own>' in render_answer_format(report.fields)
     r["fields"][0]["timestamp"] = True  # bool cannot be a timestamp
     with pytest.raises(DataValidationError, match="timestamp is only valid"):
         parse_report(r)
@@ -122,14 +121,21 @@ def test_choice_labels_round_trip() -> None:
 
 def test_rendering_per_type() -> None:
     fields = parse_report(_report(allow_not_visible=True)).fields
-    assert json.loads(render_answer_format(fields)) == {
-        "ok": '<true or false or "not_visible">',
-        "n": '<integer or "not_visible">',
-        "dur": '<number of seconds or "not_visible">',
-        "tags": '<list of letters from A/B/C, [] if none or "not_visible">',
-        "any": '<one letter: A/B/C or "not_visible">',
-        "txt": '<short text answer or "not_visible">',
-    }
+    # bare JSON types are not quoted (a quoted placeholder made models answer "9" or "F");
+    # letters and text are
+    assert render_answer_format(fields) == "\n".join(
+        [
+            "{",
+            '  "ok": <true or false or "not_visible">,',
+            '  "n": <integer or "not_visible">,',
+            '  "dur": <number of seconds or "not_visible">,',
+            '  "tags": <JSON list of letters from A/B/C, e.g. ["A", "C"], [] if none'
+            ' or "not_visible">,',
+            '  "any": "<one letter: A/B/C or \\"not_visible\\">",',
+            '  "txt": "<short text answer or \\"not_visible\\">"',
+            "}",
+        ]
+    )
     text = render_questions(fields)
     assert "Q1. [field_id: ok]\nQuestion: Done correctly?\n\nQ2." in text
     assert "Options:\nA. Technique\nB. Order\nC. Missing Step" in text
