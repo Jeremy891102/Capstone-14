@@ -133,7 +133,7 @@ def load(rid):
                 "e": s["end_time"],
                 "tags": tags,
                 "errs": s.get("errors") or [],
-                "filmed": filmed,
+                "mod": s.get("modified_description"), "filmed": filmed,
                 "not_done": s["start_time"] < 0 and "Missing Step" in tags,
             }  # fmt: skip
         )
@@ -249,7 +249,10 @@ def depends(rec, a, b):
 
 
 def evidence(s):
-    return {"step_id": s["id"], "start_time": s["s"], "end_time": s["e"], "errors": s["errs"]}
+    return {
+        "step_id": s["id"], "start_time": s["s"], "end_time": s["e"], "errors": s["errs"],
+        "modified_description": s["mod"],
+    }  # fmt: skip
 
 
 def letters(names, picked):

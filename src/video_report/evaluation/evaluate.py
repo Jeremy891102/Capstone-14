@@ -7,17 +7,23 @@ and scorer versions, and the ground-truth fingerprint.
 
 from __future__ import annotations
 
+import json
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from video_report.benchmarks.schema import SCORED_ANSWER_TYPES
 from video_report.config import PricingConfig
 from video_report.datasets.base import load_ground_truth, validate_targets
 from video_report.evaluation.aggregate import aggregate
+from video_report.evaluation.judge import JUDGE_PROMPT_VERSION, Judge
 from video_report.evaluation.parser import PARSER_VERSION, parse_response
-from video_report.evaluation.scorers import SCORER_VERSION, FieldScore, score_field
+from video_report.evaluation.scorers import (
+    SCORER_VERSION,
+    FieldScore,
+    ScoringConfig,
+    score_field,
+)
 from video_report.io_utils import (
     atomic_write_json,
     fingerprint,
@@ -28,6 +34,13 @@ from video_report.io_utils import (
 from video_report.run_store import RunDir
 
 
+def _judge_info(judge: Judge | None) -> dict[str, Any] | None:
+    if judge is None:
+        return None
+    describe = getattr(judge, "describe", None)  # called after scoring, so counts are final
+    return {"prompt_version": JUDGE_PROMPT_VERSION, **(describe() if describe else {})}
+
+
 def evaluate_run(
     run_path: Path,
     ground_truth_path: Path,
@@ -35,6 +48,8 @@ def evaluate_run(
     allow_markdown_fence: bool = False,
     pricing: PricingConfig | None = None,
     eval_id: str | None = None,
+    scoring: ScoringConfig | None = None,
+    judge: Judge | None = None,
 ) -> tuple[Path, dict[str, Any]]:
     run = RunDir(run_path)
     fingerprints = run.verify_snapshot()
@@ -42,12 +57,9 @@ def evaluate_run(
     reports = run.load_reports()
     by_report = {r.id: r for r in reports}
     selection = {r.id: [f.id for f in r.fields] for r in reports}
-    # ponytail: only single_choice is scored; add scorers when the other types' rules are set.
-    unscored = {f.answer_type for r in reports for f in r.fields} - SCORED_ANSWER_TYPES
-    if any(f.allow_not_visible for r in reports for f in r.fields):
-        unscored.add("not_visible answers")
-    if unscored:
-        raise ValueError(f"no scorer yet for {sorted(unscored)}; only single_choice is scored")
+    scoring = scoring or ScoringConfig()
+    if judge is None and any(f.answer_type == "open_text" for r in reports for f in r.fields):
+        raise ValueError("this run has open_text fields; pass a judge (see evaluation/judge.py)")
     # Frozen reports hold only the selected fields, so other fields' targets are skipped.
     targets = validate_targets(
         reports, load_ground_truth(ground_truth_path), selection, reject_unknown_fields=False
@@ -86,7 +98,13 @@ def evaluate_run(
         for fid in state["field_ids"]:
             scores.append(
                 score_field(
-                    report.field(fid), targets[(report.id, fid)], state["call_id"], parsed, reason
+                    report.field(fid),
+                    targets[(report.id, fid)],
+                    state["call_id"],
+                    parsed,
+                    reason,
+                    config=scoring,
+                    judge=judge,
                 )
             )
 
@@ -108,6 +126,8 @@ def evaluate_run(
         "scoring": {
             "parser_version": PARSER_VERSION,
             "scorer_version": SCORER_VERSION,
+            "seconds_tolerance": scoring.to_json(),
+            "judge": _judge_info(judge),
             "allow_markdown_fence": allow_markdown_fence,
             "pricing": effective_pricing.model_dump() if effective_pricing else None,
             "pricing_from": "override" if pricing is not None else "frozen run config",
@@ -116,7 +136,10 @@ def evaluate_run(
             "path": str(ground_truth_path.resolve()),
             "file_sha256": sha256_file(ground_truth_path),
             "selected_targets_fingerprint": fingerprint(
-                sorted([t.report_id, t.field_id, t.target, t.target_text] for t in targets.values())
+                sorted(
+                    ([t.report_id, t.field_id, t.target, t.target_text] for t in targets.values()),
+                    key=lambda row: json.dumps(row, sort_keys=True),
+                )
             ),
             "num_selected_targets": len(targets),
         },

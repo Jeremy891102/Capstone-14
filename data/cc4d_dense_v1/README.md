@@ -14,8 +14,8 @@ what mistakes were made, and how long it took.
 - **Files:** `manifest.json`, `reports.jsonl` (what the model sees), and `ground_truth.jsonl`
   (answers and evidence, used only for evaluation). The format rules are in
   `docs/data_contract.md`.
-- **Scoring:** the rules are decided in `docs/scoring_rules.md` but not implemented yet.
-  `video-report evaluate` refuses this benchmark until they are. `video-report validate-data`
+- **Scoring:** the rules are in `docs/scoring_rules.md` and implemented in
+  `evaluation/scorers.py`. `video-report validate-data`
   already checks every target.
 
 ## Question format

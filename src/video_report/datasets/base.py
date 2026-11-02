@@ -181,9 +181,8 @@ def _target_error(spec: FieldSpec, t: FieldTarget) -> str | None:
         ok = all((i := letter_index(x)) is not None and i < len(spec.choices) for x in v)
         if not ok:
             return msg
-        if spec.exclusive_choice is not None:
-            names = [c.strip() for c in spec.choices]
-            ex = choice_letter(names.index(spec.exclusive_choice.strip()))
+        ex = spec.exclusive_letter()
+        if ex is not None:
             if v == [] or (ex in v and len(v) > 1):
                 return f"{ex} ({spec.exclusive_choice}) is answered alone; [] is not allowed"
         return None
@@ -196,7 +195,12 @@ def _target_error(spec: FieldSpec, t: FieldTarget) -> str | None:
         return None if isinstance(v, int) and not isinstance(v, bool) else "expected an integer"
     if spec.answer_type == "seconds":
         ok = isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v < float("inf")
-        return None if ok else "expected a finite number of seconds >= 0"
+        if not ok:
+            return "expected a finite number of seconds >= 0"
+        length = t.evidence.get("length")
+        if spec.timestamp and not (isinstance(length, (int, float)) and length > 0):
+            return "a timestamp target needs the step length > 0 in evidence.length"
+        return None
     raise AssertionError(f"unhandled answer_type {spec.answer_type}")
 
 

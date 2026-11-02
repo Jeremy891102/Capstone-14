@@ -134,12 +134,26 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     from video_report.evaluation.evaluate import evaluate_run
 
     pricing = PricingConfig.model_validate(read_json(Path(args.pricing))) if args.pricing else None
-    out_dir, metrics = evaluate_run(
-        Path(args.run),
-        Path(args.ground_truth),
-        allow_markdown_fence=args.allow_markdown_fence,
-        pricing=pricing,
-    )
+    judge = None
+    if args.judge_model:  # open_text answers are graded by a text-only model call
+        from video_report.config import GeminiProviderConfig
+        from video_report.evaluation.judge import ProviderJudge
+        from video_report.providers.vertex_gemini import VertexGeminiProvider
+
+        cache = RunDir(Path(args.run)).evaluations_dir / "judge_cache.jsonl"
+        provider = VertexGeminiProvider(args.judge_model, GeminiProviderConfig())
+        judge = ProviderJudge(provider, args.judge_model, cache_path=cache)
+    try:
+        out_dir, metrics = evaluate_run(
+            Path(args.run),
+            Path(args.ground_truth),
+            allow_markdown_fence=args.allow_markdown_fence,
+            pricing=pricing,
+            judge=judge,
+        )
+    finally:
+        if judge:
+            provider.close()
     summary = {
         "evaluation_dir": str(out_dir),
         "provisional": metrics["provisional"],
@@ -153,6 +167,8 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         "cost": metrics["usage"]["cost"],
         "cost_status": metrics["usage"]["cost_status"],
     }
+    if judge:
+        summary["judge"] = judge.describe()
     _print(summary)
     return EXIT_OK
 
@@ -211,11 +227,14 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("run")
     p.set_defaults(func=cmd_status)
 
-    p = sub.add_parser("evaluate", help="score a run offline (no model calls)")
+    p = sub.add_parser(
+        "evaluate", help="score a run offline (model calls only for the open_text judge)"
+    )
     p.add_argument("--run", required=True)
     p.add_argument("--ground-truth", required=True)
     p.add_argument("--allow-markdown-fence", action="store_true")
     p.add_argument("--pricing", help="JSON file overriding the run's pricing config")
+    p.add_argument("--judge-model", help="Vertex Gemini model that grades open_text answers")
     p.set_defaults(func=cmd_evaluate)
 
     p = sub.add_parser("validate-data", help="validate a prepared benchmark directory")

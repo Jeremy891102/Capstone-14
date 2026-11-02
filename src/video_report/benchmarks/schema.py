@@ -30,8 +30,7 @@ from pydantic import (
 
 SCHEMA_VERSION = "video_report.v1"
 
-# Anything else is rejected at load time instead of being scored with the wrong rule. Only
-# single_choice has a scorer so far; evaluation refuses runs with other types.
+# Anything else is rejected at load time instead of being scored with the wrong rule.
 CHOICE_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice", "multi_choice"})
 SUPPORTED_ANSWER_TYPES: frozenset[str] = CHOICE_ANSWER_TYPES | {
     "bool",
@@ -39,7 +38,6 @@ SUPPORTED_ANSWER_TYPES: frozenset[str] = CHOICE_ANSWER_TYPES | {
     "seconds",
     "open_text",
 }
-SCORED_ANSWER_TYPES: frozenset[str] = frozenset({"single_choice"})
 
 # Target (and accepted answer) for a field with allow_not_visible when the video cannot tell.
 NOT_VISIBLE = "not_visible"
@@ -179,6 +177,11 @@ class FieldSpec(StrictModel):
 
     def letters(self) -> list[str]:
         return [choice_letter(i) for i in range(len(self.choices))]
+
+    def exclusive_letter(self) -> str | None:
+        if self.exclusive_choice is None:
+            return None
+        return choice_letter([c.strip() for c in self.choices].index(self.exclusive_choice.strip()))
 
 
 class SourceRef(StrictModel):

@@ -12,9 +12,7 @@
   使用相同 seed 重新執行腳本,會得到相同的檔案。
 - **檔案:** `manifest.json`、`reports.jsonl`(模型看得到的內容)、`ground_truth.jsonl`
   (答案與證據,僅供評估使用)。格式規則見 `docs/data_contract.md`。
-- **評分:** 規則已在 `docs/scoring_rules.md` 中決定,但尚未實作。
-  在實作完成前,`video-report evaluate` 會拒絕評估此基準。`video-report validate-data`
-  已可檢查每個目標。
+- **評分:** 規則在 `docs/scoring_rules.md`,已實作在 `evaluation/scorers.py`。`video-report validate-data` 已可檢查每個目標。
 
 ## 題目格式
 

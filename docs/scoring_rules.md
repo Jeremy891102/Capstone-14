@@ -5,9 +5,11 @@ are defined in `docs/data_contract.md`.
 
 **Status (2026-10-13):**
 
-- Only `single_choice` is implemented, in `evaluation/scorers.py`. The other types
-  are decided here, but no code exists yet. Until it does, `video-report
-  evaluate` refuses runs that contain them.
+- All types are implemented in `evaluation/scorers.py` (2026-10-30), including `not_visible`.
+  `open_text` needs a judge (`evaluation/judge.py`): `video-report evaluate --judge-model
+  gemini-3.5-flash-lite` grades them with a text-only Vertex call, and verdicts are cached in
+  `evaluations/judge_cache.jsonl`. Without `--judge-model`, runs with `open_text` fields are
+  refused. The judge still has to be checked against about 100 hand labels (below).
 - The rules below were agreed while designing the CaptainCook4D benchmark (`cc4d_dense_v1`).
   They apply to any benchmark that uses these types.
 - `cc4d_dense_v1` uses `bool`, `int`, `seconds`, `single_choice` and `multi_choice`.
@@ -59,7 +61,7 @@ missing answer; the data contract already had `not_visible`.)
 
 ## Rules per type
 
-### `single_choice` (implemented)
+### `single_choice`
 
 - **Valid answer:** one choice label within the field's choices: `"A"` … `"Z"`, then
   `"AA"`, `"AB"`, ….

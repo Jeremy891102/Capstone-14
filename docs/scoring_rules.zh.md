@@ -7,8 +7,10 @@
 
 **狀態(2026-10-13):**
 
-- 只有 `single_choice` 已實作,在 `evaluation/scorers.py`。其他題型的規則在這裡定好了,但還沒有
-  程式碼。在實作之前,`video-report evaluate` 會拒絕含有這些題型的 run。
+- 所有題型都已在 `evaluation/scorers.py` 實作(2026-10-30),包含 `not_visible`。`open_text` 需要
+  評審(`evaluation/judge.py`):`video-report evaluate --judge-model gemini-3.5-flash-lite` 用純文字的
+  Vertex 呼叫評分,結果快取在 `evaluations/judge_cache.jsonl`。沒給 `--judge-model` 時,含
+  `open_text` 欄位的 run 會被拒絕。評審仍須用約 100 題人工標註驗證(見下方)。
 - 以下規則是設計 CaptainCook4D benchmark(`cc4d_dense_v1`)時定的,適用於任何使用這些題型的
   benchmark。
 - `cc4d_dense_v1` 使用 `bool`、`int`、`seconds`、`single_choice` 和 `multi_choice`。
@@ -52,7 +54,7 @@
 
 ## 各題型規則
 
-### `single_choice`(已實作)
+### `single_choice`
 
 - **有效答案:** 該欄位選項中的一個標籤:`"A"` … `"Z"`,接著是 `"AA"`、`"AB"`……
 - **正確:** 標籤等於答案。
