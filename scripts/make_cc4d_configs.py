@@ -82,6 +82,8 @@ def main():
                         "api_key_env": "GEMINI_API_KEY",
                         "clip_height": 480,
                         "clip_fps": 2.0,
+                        # CC4D recordings run up to 39 min; a 480p clip is ~30 KB/s
+                        "max_payload_bytes": 200_000_000,
                     },
                 },
                 "video": {"use_time_range": True, "fps": 2.0},
