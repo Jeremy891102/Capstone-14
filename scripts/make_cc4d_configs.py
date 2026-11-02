@@ -20,13 +20,23 @@ from pathlib import Path
 
 import yaml
 
-PRICING = {  # Gemini 3.5 Flash-Lite, global standard tier
+PRICING_FLASH_LITE = {  # Gemini 3.5 Flash-Lite, global standard tier
     "currency": "USD",
     "input_per_million": 0.3,
     "cached_input_per_million": 0.03,
     "output_per_million": 2.5,
     "source": "https://cloud.google.com/gemini-enterprise-agent-platform/generative-ai/pricing"
     " ; global standard Gemini 3.5 Flash-Lite; checked 2026-10-08",
+}
+PRICING = {
+    "gemini-3.5-flash-lite": PRICING_FLASH_LITE,
+    "gemini-3.6-flash": {  # OpenRouter standard tier, checked 2026-10-29; thinking bills as output
+        "currency": "USD",
+        "input_per_million": 0.75,
+        "cached_input_per_million": 0.075,
+        "output_per_million": 3.75,
+        "source": "https://openrouter.ai/api/v1/models/google/gemini-3.6-flash/endpoints",
+    },
 }
 
 
@@ -49,6 +59,7 @@ def main():
     ap.add_argument("--video-root", required=True)
     ap.add_argument("--model", default="gemini-3.5-flash-lite")
     ap.add_argument("--concurrency", type=int, default=1)
+    ap.add_argument("--max-output-tokens", type=int, default=4096, help="thinking tokens count")
     ap.add_argument("--pilot", nargs="*", default=[])
     args = ap.parse_args()
     prompts = args.out / "prompts"
@@ -89,11 +100,11 @@ def main():
                 "video": {"use_time_range": True, "fps": 2.0},
                 "generation": {
                     "temperature": 0.0,
-                    "max_output_tokens": 4096,
+                    "max_output_tokens": args.max_output_tokens,
                     "response_format": "json",
                 },
                 "execution": {"concurrency": args.concurrency, "max_attempts": 3, "timeout_s": 300},
-                "pricing": PRICING if args.model == "gemini-3.5-flash-lite" else None,
+                "pricing": PRICING.get(args.model),
             }
             calls = sum(math.ceil(len(r["fields"]) / k) for r in reports)
             (cdir / "config.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
