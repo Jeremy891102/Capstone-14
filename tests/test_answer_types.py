@@ -130,7 +130,7 @@ def test_rendering_per_type() -> None:
             '  "n": <integer or "not_visible">,',
             '  "dur": <number of seconds or "not_visible">,',
             '  "tags": <JSON list of letters from A/B/C, e.g. ["A", "C"], [] if none'
-            ' or "not_visible">,',
+            '; or the bare string "not_visible", never inside a list>,',
             '  "any": "<one letter: A/B/C or \\"not_visible\\">",',
             '  "txt": "<short text answer or \\"not_visible\\">"',
             "}",

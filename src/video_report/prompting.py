@@ -89,7 +89,11 @@ def _answer_hint(f: FieldSpec) -> str:
         "seconds": "number of seconds",
         "open_text": "short text answer",
     }[f.answer_type]
-    return f"<{hint}" + (' or "not_visible"' if f.allow_not_visible else "") + ">"
+    if not f.allow_not_visible:
+        return f"<{hint}>"
+    if f.answer_type == "multi_choice":  # models wrote ["not_visible"] inside the list
+        return f'<{hint}; or the bare string "not_visible", never inside a list>'
+    return f'<{hint} or "not_visible">'
 
 
 # Letters and text are JSON strings, so their placeholder is quoted. The other types are bare JSON
