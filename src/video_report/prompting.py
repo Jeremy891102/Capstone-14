@@ -86,7 +86,7 @@ def _answer_hint(f: FieldSpec) -> str:
         ),
         "bool": "true or false",
         "int": "integer",
-        "seconds": "number of seconds",
+        "seconds": "number of seconds, as a plain number (125, not 2:05 or 0205)",
         "open_text": "short text answer",
     }[f.answer_type]
     if not f.allow_not_visible:
