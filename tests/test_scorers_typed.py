@@ -128,6 +128,9 @@ def test_judge_prompt_and_reply_parsing() -> None:
     assert "0. too much salt" in p and "Answer to grade: salty" in p
     v = parse_verdict('{"correct": true, "matched": [0, 0], "extra_claims": 2}', 1)
     assert v == JudgeVerdict(True, [0], 2)
+    # no reference: judges write ["none"] for matched
+    none = '{"correct": true, "matched": ["none"], "extra_claims": 0}'
+    assert parse_verdict(none, 0).matched == []
     for bad in ('{"correct": "yes", "matched": [], "extra_claims": 0}',
                 '{"correct": true, "matched": [3], "extra_claims": 0}',
                 '{"correct": true, "matched": [], "extra_claims": -1}'):  # fmt: skip

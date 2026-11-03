@@ -67,6 +67,8 @@ def parse_verdict(text: str, n_reference: int) -> JudgeVerdict:
     if not isinstance(obj, dict) or not {"correct", "matched", "extra_claims"} <= obj.keys():
         raise ValueError(f"unexpected judge reply: {text[:200]!r}")
     matched, extra = obj["matched"], obj["extra_claims"]
+    if n_reference == 0:  # nothing to match; judges write ["none"] here
+        matched = []
     ok = isinstance(obj["correct"], bool) and isinstance(extra, int) and not isinstance(extra, bool)
     ok = ok and isinstance(matched, list) and extra >= 0
     ok = ok and all(
