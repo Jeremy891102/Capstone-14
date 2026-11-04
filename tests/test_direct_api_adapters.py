@@ -363,3 +363,54 @@ def test_missing_real_credentials():
 def test_openai_malformed_response_fields(data):
     with pytest.raises(PermanentProviderError, match="invalid_response"):
         OpenAIProvider._to_response(data)
+
+
+def test_vllm_video_payload_budget_and_no_key(video):
+    from video_report.config import VLLMProviderConfig
+    from video_report.providers.vllm import VLLMProvider, choose_height
+
+    seen = []
+
+    def handler(r):
+        seen.append(r)
+        return httpx.Response(
+            200,
+            json={
+                "id": "chatcmpl-fake",
+                "model": "test-model",
+                "choices": [{"finish_reason": "stop", "message": {"content": '{"f":"A"}'}}],
+                "usage": {"prompt_tokens": 100, "completion_tokens": 10, "total_tokens": 110},
+            },
+        )
+
+    p = VLLMProvider(
+        "test-model",
+        VLLMProviderConfig(),
+        client=httpx.Client(transport=httpx.MockTransport(handler)),
+        environ={},
+    )
+    root = p.media.root
+    try:
+        result = p.generate(req(video), timeout_s=4)
+        body = json.loads(seen[0].content)
+        assert str(seen[0].url) == "http://localhost:8000/v1/chat/completions"
+        assert body["messages"][0] == {"role": "system", "content": "Return JSON"}
+        assert body["response_format"] == {"type": "json_object"} and body["max_tokens"] == 64
+        parts = body["messages"][1]["content"]
+        assert [x["type"] for x in parts] == ["video_url", "text"]
+        mp4 = base64.b64decode(parts[0]["video_url"]["url"].split(",")[1])
+        assert mp4[4:8] == b"ftyp"
+        assert result.text == '{"f":"A"}' and result.usage.output_tokens == 10
+        assert result.metadata["fps"] == 2 and result.metadata["height"] == 352
+        with pytest.raises(PermanentProviderError):
+            p.generate(replace(req(video), fps=200), timeout_s=4)
+    finally:
+        p.close()
+    assert not root.exists()
+    assert preflight(ProviderConfig(name="vllm", model="m"), {}) is None
+    # budget: fps stays fixed, height drops for long clips, fails below min_height
+    long = lambda m: replace(req(video), videos=(VideoInput("v", "/x", True, None, 0, m * 60),))
+    cfg = VLLMProviderConfig()
+    assert choose_height(long(13), cfg) == 352 and choose_height(long(41), cfg) == 192
+    with pytest.raises(ValueError):
+        choose_height(long(600), cfg)

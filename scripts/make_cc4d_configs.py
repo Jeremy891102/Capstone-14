@@ -58,12 +58,34 @@ def main():
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--video-root", required=True)
     ap.add_argument("--model", default="gemini-3.5-flash-lite")
+    ap.add_argument("--provider", choices=["gemini", "vllm"], default="gemini")
+    ap.add_argument("--base-url", default="http://localhost:8000/v1", help="vllm only")
+    ap.add_argument("--token-budget", type=int, default=145_000, help="vllm only: video tokens")
     ap.add_argument("--concurrency", type=int, default=1)
     ap.add_argument("--max-output-tokens", type=int, default=4096, help="thinking tokens count")
     ap.add_argument("--pilot", nargs="*", default=[])
     args = ap.parse_args()
     prompts = args.out / "prompts"
     assert (prompts / "user.txt").is_file(), f"missing {prompts}/user.txt"
+    if args.provider == "vllm":
+        provider = {
+            "name": "vllm",
+            "model": args.model,
+            "vllm": {"base_url": args.base_url, "frame_fps": 2.0, "video_token_budget": args.token_budget},
+        }
+    else:
+        provider = {
+            "name": "gemini",
+            "model": args.model,
+            "gemini": {
+                "backend": "vertex_express",
+                "api_key_env": "GEMINI_API_KEY",
+                "clip_height": 480,
+                "clip_fps": 2.0,
+                # CC4D recordings run up to 39 min; a 480p clip is ~30 KB/s
+                "max_payload_bytes": 200_000_000,
+            },
+        }
     total = pilot_total = 0
     for gdir in sorted(p for p in args.data.iterdir() if (p / "manifest.json").is_file()):
         reports = [json.loads(x) for x in (gdir / "reports.jsonl").read_text().splitlines()]
@@ -85,25 +107,14 @@ def main():
                     "user": rel(prompts / "user.txt"),
                     "context_keys": ["task_name", "recipe", "error_definitions"],
                 },
-                "provider": {
-                    "name": "gemini",
-                    "model": args.model,
-                    "gemini": {
-                        "backend": "vertex_express",
-                        "api_key_env": "GEMINI_API_KEY",
-                        "clip_height": 480,
-                        "clip_fps": 2.0,
-                        # CC4D recordings run up to 39 min; a 480p clip is ~30 KB/s
-                        "max_payload_bytes": 200_000_000,
-                    },
-                },
+                "provider": provider,
                 "video": {"use_time_range": True, "fps": 2.0},
                 "generation": {
                     "temperature": 0.0,
                     "max_output_tokens": args.max_output_tokens,
                     "response_format": "json",
                 },
-                "execution": {"concurrency": args.concurrency, "max_attempts": 3, "timeout_s": 300},
+                "execution": {"concurrency": args.concurrency, "max_attempts": 3, "timeout_s": 900 if args.provider == "vllm" else 300},
                 "pricing": PRICING.get(args.model),
             }
             calls = sum(math.ceil(len(r["fields"]) / k) for r in reports)

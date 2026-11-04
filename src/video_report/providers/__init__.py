@@ -1,4 +1,4 @@
-"""Provider construction. Mock, Gemini (Developer or Vertex Express), OpenRouter and OpenAI."""
+"""Provider construction. Mock, Gemini (Developer or Vertex Express), OpenRouter, OpenAI and vLLM."""
 
 from __future__ import annotations
 
@@ -33,6 +33,10 @@ def build_provider(cfg: ProviderConfig, mock_responses_path: Path | None) -> Pro
         from video_report.providers.openai import OpenAIProvider
 
         return OpenAIProvider(cfg.model, cfg.openai)
+    if cfg.name == "vllm":
+        from video_report.providers.vllm import VLLMProvider
+
+        return VLLMProvider(cfg.model, cfg.vllm)
     raise ValueError(f"unknown provider {cfg.name!r}")
 
 
@@ -48,6 +52,10 @@ def validate_request_for(
         from video_report.providers.openai import validate_request as validate_openai
 
         validate_openai(request, cfg.openai if cfg else None)
+    elif provider_name == "vllm":
+        from video_report.providers.vllm import validate_request as validate_vllm
+
+        validate_vllm(request, cfg.vllm if cfg else None)
     elif provider_name == "gemini":
         from video_report.providers.gemini import validate_request
 
@@ -71,6 +79,10 @@ def preflight(cfg: ProviderConfig, environ: dict[str, str] | None = None) -> Non
             raise ValueError(
                 f"provider gemini needs the environment variable {cfg.gemini.api_key_env}"
             )
+    if cfg.name == "vllm":
+        for mod in ("httpx", "imageio_ffmpeg"):
+            if importlib.util.find_spec(mod) is None:
+                raise ValueError("provider vllm needs httpx and imageio-ffmpeg")
     if cfg.name in {"openrouter", "openai"} or (
         cfg.name == "gemini" and cfg.gemini.backend == "vertex_express"
     ):
