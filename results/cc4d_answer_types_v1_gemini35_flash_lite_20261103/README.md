@@ -14,7 +14,7 @@ reversed order, 25,711 calls, 102,753 scored fields.
 * `runs/<run>/predictions.jsonl`, `run.json`: model answers and run metadata (first pass, 3 Nov).
 * `runs_rerun/rr_<run>/`: second pass of the reports that have a `seconds` or `multi_choice` field (4 Nov, see "Rerun"). `merged.py` gives the final scores: a rerun report replaces the same report in `runs/`.
 * `runs/<run>/evaluations/<id>/`: `field_scores.jsonl` (one row per field), `metrics.json`, `evaluation.json`.
-* `summary.json`, `summarize.py`: per-run table from the merged scores. `analysis.md`, `figs/`, `make_figs.py`: findings per research question.
+* `summary.json`, `summarize.py`: per-run table from the merged scores. `analysis.md` (Chinese) / `analysis.en.md`, `figs/`, `make_figs.py`, `make_q234.py`: findings per research question (`make_q234.py` does the chance / majority correction for Q2–Q4).
 * Not saved (kept on the VM, `~/cc4d_at/runs_full_fl/`): raw responses, per-call records, the clip snapshot and the 36 MB smoke-test logs.
 
 ## Results
