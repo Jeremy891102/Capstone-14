@@ -90,6 +90,25 @@ def test_seconds_validity_and_timestamp_tolerance() -> None:
     )
 
 
+def test_timestamp_accepts_mmss_reading() -> None:
+    ts = spec("seconds", timestamp=True)
+    ev = {"length": 20}  # tolerance 5 s
+    s = run(ts, 604, 1004, ev)  # 10:04
+    assert s.correct and s.extra["read_as_mmss"]
+    assert not run(ts, 604, 1070, ev).correct  # 70 is not a valid seconds part
+    assert not run(ts, 604, 1020, ev).correct  # 10:20 is 620 s
+    assert run(ts, 120, 120, ev).correct and "read_as_mmss" not in run(ts, 120, 120, ev).extra
+    assert not run(spec("seconds"), 604, 1004).correct  # durations keep the plain reading
+
+
+def test_multi_choice_accepts_option_text() -> None:
+    s = run(spec("multi_choice"), ["B"], ["timing"])  # option B is "Timing"
+    assert s.correct and s.predicted == ["B"]
+    assert run(spec("multi_choice"), ["A", "B"], ["Timing", "A"]).correct
+    assert run(spec("multi_choice"), ["B"], ["Nothing"]).outcome == "invalid_answer"
+    assert run(spec("single_choice"), "B", "Timing").outcome == "invalid_answer"  # multi only
+
+
 def test_not_visible_rules() -> None:
     nv = spec("bool", allow_not_visible=True)
     hall = run(nv, "not_visible", True)  # an answer for a step that was not done

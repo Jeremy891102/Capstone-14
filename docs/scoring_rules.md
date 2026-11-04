@@ -107,6 +107,11 @@ missing answer; the data contract already had `not_visible`.)
   its tolerance from the step's own length: correct when
   `|answer − start| ≤ max(2, 0.25 × (end − start))`. Same floor and ratio as durations. The
   field marks itself as a timestamp and carries the step length in its ground truth.
+- **mm:ss reading** (decided 2026-11-04, scorer `typed_v3`, after seeing the Flash-Lite run):
+  models wrote "10:04" as the integer `1004`. For timestamp fields only, an integer answer of
+  100 or more whose last two digits are below 60 is also read as minutes and seconds
+  (`1004` → 604 s); the answer is correct if either reading is within the tolerance.
+  `mmss_seconds` and `read_as_mmss` are recorded. Duration fields keep the plain reading.
 
 ### `multi_choice`
 
@@ -115,6 +120,9 @@ missing answer; the data contract already had `not_visible`.)
   - A list with duplicate or unknown labels is invalid.
 - **Correct:** the set of answered labels is exactly the set of target labels. When the
   target is `[]`, only `[]` is correct.
+- **Option text** (decided 2026-11-04, scorer `typed_v3`): a list item that is exactly an
+  option's text, ignoring case (`["Timing"]`), counts as that option's letter. Anything else
+  that is not a letter stays invalid. `single_choice` is unchanged.
 - **Exclusive option** (decided 2026-10-26): a field may mark one choice as exclusive, such as
   CC4D's "No mistake", so the option list matches the `single_choice` version of the same
   question. That option may only be answered alone: `["F"]` is valid, `["F", "A"]` is

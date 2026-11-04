@@ -19,11 +19,17 @@ import math
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-from video_report.benchmarks.schema import NOT_VISIBLE, FieldSpec, FieldTarget, letter_index
+from video_report.benchmarks.schema import (
+    NOT_VISIBLE,
+    FieldSpec,
+    FieldTarget,
+    choice_letter,
+    letter_index,
+)
 from video_report.evaluation.judge import Judge, JudgeInput
 from video_report.evaluation.parser import ParsedResponse
 
-SCORER_VERSION = "typed_v2"
+SCORER_VERSION = "typed_v3"
 
 Outcome = Literal[
     "correct", "incorrect", "invalid_answer", "missing_answer", "invalid_output", "not_executed"
@@ -89,6 +95,21 @@ def _letters(spec: FieldSpec, raw: Any) -> list[str] | None:
         if not isinstance(x, str) or (i := letter_index(x)) is None or i >= len(spec.choices):
             return None
     return list(items)
+
+
+def _choice_texts_to_letters(spec: FieldSpec, raw: Any) -> Any:
+    """multi_choice only: an item that is exactly an option's text (case-insensitive) becomes its letter."""
+    if not isinstance(raw, list):
+        return raw
+    by_text = {c.strip().lower(): choice_letter(i) for i, c in enumerate(spec.choices)}
+    return [by_text.get(x.strip().lower(), x) if isinstance(x, str) else x for x in raw]
+
+
+def _mmss_seconds(raw: float) -> float | None:
+    """Read an integer like 1004 as 10:04, i.e. 604 s; None if it cannot be mm:ss."""
+    if not isinstance(raw, int) or raw < 100 or raw % 100 >= 60:
+        return None
+    return float((raw // 100) * 60 + raw % 100)
 
 
 def _texts(spec: FieldSpec, letters: list[str]) -> list[str]:
@@ -177,6 +198,13 @@ def _check_type(
             "rel_error": err / goal if goal else None,
             "tolerance": tol,
         }
+        # timestamps only: models write 10:04 as 1004; either reading may match
+        mm = _mmss_seconds(raw) if spec.timestamp else None
+        if mm is not None:
+            extra["mmss_seconds"] = mm
+            if err > tol and abs(mm - goal) <= tol:
+                extra["read_as_mmss"] = True
+                return _Verdict("correct", raw, extra=extra)
         return _Verdict(ok(err <= tol), raw, extra=extra)
     if t == "open_text":
         if not isinstance(raw, str) or not raw.strip():
@@ -192,6 +220,9 @@ def _check_type(
         accepted = set() if not_done_item else _target_set(tgt)
         return _Verdict(ok(raw in accepted), raw, _texts(spec, letters)[0])
     assert t == "multi_choice", t
+    mapped = _choice_texts_to_letters(spec, raw)  # option text instead of its letter
+    if mapped != raw:
+        raw, letters = mapped, _letters(spec, mapped)
     if letters is None or not isinstance(raw, list):
         return _invalid(f"value {raw!r} is not a list of distinct letters from {spec.letters()}")
     ex = spec.exclusive_letter()
