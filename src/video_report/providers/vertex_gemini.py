@@ -47,7 +47,7 @@ class VertexGeminiProvider:
             "provider": self.name,
             "backend": "vertex_express",
             "model": self.model,
-            "endpoint": BASE + self.model + ":generateContent",
+            "endpoint": self.options.base_url + self.model + ":generateContent",
             "adapter_version": 1,
             "httpx_version": importlib.metadata.version("httpx"),
             "imageio_ffmpeg_version": importlib.metadata.version("imageio-ffmpeg"),
@@ -97,7 +97,7 @@ class VertexGeminiProvider:
         if request.system:
             body["systemInstruction"] = {"parts": [{"text": request.system}]}
         data = self.http.post(
-            BASE + request.model + ":generateContent",
+            self.options.base_url + request.model + ":generateContent",
             {"x-goog-api-key": self.http.key},
             body,
             timeout_s,

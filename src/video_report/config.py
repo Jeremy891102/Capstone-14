@@ -68,6 +68,8 @@ class GeminiProviderConfig(_Strict):
     media_timeout_s: float = Field(default=120.0, gt=0)
     max_payload_bytes: int = Field(default=20_000_000, gt=0)
     api_key_env: str = "GEMINI_API_KEY"
+    # vertex_express model URL prefix; some models (gemini-4-argon) exist only under locations/global
+    base_url: str = "https://aiplatform.googleapis.com/v1/publishers/google/models/"
     file_poll_interval_s: float = Field(default=2.0, gt=0)
     file_active_timeout_s: float = Field(default=300.0, gt=0)
     delete_uploaded_files: bool = True

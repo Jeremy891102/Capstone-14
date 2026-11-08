@@ -411,6 +411,6 @@ def test_vllm_video_payload_budget_and_no_key(video):
     # budget: fps stays fixed, height drops for long clips, fails below min_height
     long = lambda m: replace(req(video), videos=(VideoInput("v", "/x", True, None, 0, m * 60),))
     cfg = VLLMProviderConfig()
-    assert choose_height(long(13), cfg) == 352 and choose_height(long(41), cfg) == 192
+    assert choose_height(long(10), cfg) == 352 and choose_height(long(41), cfg) == 160
     with pytest.raises(ValueError):
         choose_height(long(600), cfg)
