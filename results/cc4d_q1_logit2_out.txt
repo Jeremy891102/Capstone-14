@@ -1,0 +1,107 @@
+=== A1. model x content x k (bool+single; dur vs loc, all three models) ===
+  Wald 3-way (model x content x k): chi2=16.93 df=2 p=0.0002
+  Wald model x k: chi2=26.20 df=4 p=0.0000
+model       content
+Argon       dur       -0.19
+            loc        0.18
+Flash-Lite  dur       -0.77
+            loc        0.78
+Qwen        dur       -1.06
+            loc       -2.48
+--- adding err, Flash-Lite vs Qwen only ---
+  Wald 3-way (model x content x k): chi2=18.68 df=2 p=0.0001
+model       content
+Flash-Lite  dur       -0.77
+            err       -1.01
+            loc        0.78
+Qwen        dur       -1.06
+            err       -0.73
+            loc       -2.48
+
+=== A2. model x type x k (dur+loc; bool, single, seconds; all three models) ===
+  Wald 3-way (model x type x k): chi2=1.37 df=4 p=0.8496
+model       type   
+Argon       bool      -0.10
+            seconds    0.55
+            single     0.08
+Flash-Lite  bool       0.29
+            seconds    0.53
+            single    -0.27
+Qwen        bool      -1.81
+            seconds   -0.60
+            single    -1.84
+--- error row (bool, single, multi, int), Flash-Lite vs Qwen ---
+  Wald 3-way (model x type x k): chi2=46.63 df=4 p=0.0000
+model       type     
+Flash-Lite  bool        -0.72
+            int          4.20
+            multi        0.25
+            open_text    0.86
+            single      -1.30
+Qwen        bool        -1.02
+            int         -0.57
+            multi        0.33
+            open_text    1.92
+            single      -0.43
+
+=== B. position in the call (posfrac 0 = first, 1 = last; forward + reversed, k = 4, 8) ===
+
+## Flash-Lite: position effect  (n=10240)
+  posfrac                                coef -0.035 [-0.107, +0.036]  p=0.335  OR=0.97
+
+## Qwen: position effect  (n=10240)
+  posfrac                                coef +0.040 [-0.043, +0.123]  p=0.346  OR=1.04
+
+## Argon: position effect  (n=7680)
+  posfrac                                coef -0.166 [-0.318, -0.014]  p=0.032  OR=0.85
+  Wald position slope differs by model: chi2=5.81 df=2 p=0.0549
+--- does adjusting for position change the k effect? forward only, k = 1/4/8 (k=1 coded posfrac 0) ---
+  Flash-Lite: lk +0.010 -> +0.014  (posfrac -0.020)
+  Qwen: lk -0.073 -> -0.045  (posfrac -0.156)
+  Argon: lk +0.009 -> +0.046  (posfrac -0.202)
+
+=== C. answer bias on bool: P(answer = yes) and accuracy split by true answer ===
+  Flash-Lite: yes-rate by k {1: 0.334, 4: 0.326, 8: 0.313} | yes-rate when truth=yes {1: 0.368, 4: 0.368, 8: 0.348} | truth=no {1: 0.302, 4: 0.285, 8: 0.279}
+
+## Flash-Lite: P(yes) ~ k x truth  (n=4499)
+  lk                                     coef -0.061 [-0.151, +0.029]  p=0.186  OR=0.94
+  lk:tgt                                 coef +0.019 [-0.088, +0.127]  p=0.723  OR=1.02
+  Qwen: yes-rate by k {1: 0.492, 4: 0.523, 8: 0.542} | yes-rate when truth=yes {1: 0.649, 4: 0.661, 8: 0.678} | truth=no {1: 0.329, 4: 0.377, 8: 0.401}
+
+## Qwen: P(yes) ~ k x truth  (n=4201)
+  lk                                     coef +0.222 [+0.130, +0.315]  p=0.000  OR=1.25
+  lk:tgt                                 coef -0.165 [-0.259, -0.071]  p=0.001  OR=0.85
+  Argon: yes-rate by k {1: 0.479, 4: 0.49, 8: 0.496} | yes-rate when truth=yes {1: 0.92, 4: 0.925, 8: 0.936} | truth=no {1: 0.051, 4: 0.067, 8: 0.068}
+
+## Argon: P(yes) ~ k x truth  (n=3030)
+  lk                                     coef +0.109 [+0.025, +0.194]  p=0.011  OR=1.12
+  lk:tgt                                 coef -0.037 [-0.161, +0.088]  p=0.563  OR=0.96
+
+=== D. video length (minutes) ===
+
+## Flash-Lite: k x length(10 min)  (n=7680)
+  v10                                    coef -0.238 [-0.535, +0.059]  p=0.117  OR=0.79
+  lk:v10                                 coef +0.008 [-0.055, +0.071]  p=0.804  OR=1.01
+  AME per doubling (pt) by class:
+ cls
+A   -0.02
+B    0.53
+C   -0.13
+
+## Qwen: k x length(10 min)  (n=7680)
+  v10                                    coef -0.121 [-0.420, +0.178]  p=0.428  OR=0.89
+  lk:v10                                 coef +0.079 [+0.014, +0.144]  p=0.018  OR=1.08
+  AME per doubling (pt) by class:
+ cls
+A   -1.92
+B   -1.88
+C    0.38
+
+## Argon: k x length(10 min)  (n=7680)
+  v10                                    coef +0.007 [-0.413, +0.427]  p=0.976  OR=1.01
+  lk:v10                                 coef +0.055 [-0.018, +0.129]  p=0.139  OR=1.06
+  AME per doubling (pt) by class:
+ cls
+A   -0.36
+B    0.37
+C    0.36
