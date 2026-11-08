@@ -1,0 +1,75 @@
+baselines (max of chance / majority): {'dur bool': np.float64(0.52), 'dur seconds': 0.26, 'dur single': np.float64(0.28), 'err bool': np.float64(0.5), 'err int': 0.5, 'err multi': 0.5, 'err open_text': 0.5, 'err single': np.float64(0.5), 'loc bool': np.float64(0.5), 'loc seconds': 0.06, 'loc single': np.float64(0.22)}
+
+=== 2.1 chance-normalized accuracy [95% CI]; difference from bool (paired by fact) ===
+
+Flash-Lite
+  err bool       acc 0.527  base 0.50  norm +0.05 [-0.02, +0.13]
+  err single     acc 0.508  base 0.50  norm +0.02 [-0.05, +0.09]  | minus bool -0.04 [-0.12, +0.05]
+  err multi      acc 0.447  base 0.50  norm -0.11 [-0.20, -0.01]  | minus bool -0.16 [-0.27, -0.05]
+  err int        acc 0.369  base 0.50  norm -0.26 [-0.33, -0.20]  | minus bool -0.32 [-0.41, -0.22]
+  err open_text  acc 0.406  base 0.50  norm -0.19 [-0.25, -0.12]  | minus bool -0.24 [-0.34, -0.14]
+  dur bool       acc 0.564  base 0.52  norm +0.10 [-0.00, +0.19]
+  dur single     acc 0.361  base 0.28  norm +0.11 [+0.04, +0.18]  | minus bool +0.02 [-0.06, +0.10]
+  dur seconds    acc 0.166  base 0.26  norm -0.13 [-0.17, -0.07]  | minus bool -0.22 [-0.31, -0.13]
+  loc bool       acc 0.484  base 0.50  norm -0.03 [-0.09, +0.04]
+  loc single     acc 0.324  base 0.22  norm +0.13 [+0.08, +0.18]  | minus bool +0.16 [+0.07, +0.25]
+  loc seconds    acc 0.252  base 0.06  norm +0.21 [+0.16, +0.25]  | minus bool +0.24 [+0.16, +0.31]
+
+Qwen
+  err bool       acc 0.463  base 0.50  norm -0.07 [-0.15, +0.00]
+  err single     acc 0.504  base 0.50  norm +0.01 [-0.08, +0.09]  | minus bool +0.08 [-0.03, +0.19]
+  err multi      acc 0.471  base 0.50  norm -0.06 [-0.14, +0.02]  | minus bool +0.02 [-0.10, +0.13]
+  err int        acc 0.518  base 0.50  norm +0.04 [-0.01, +0.07]  | minus bool +0.11 [+0.04, +0.18]
+  err open_text  acc 0.406  base 0.50  norm -0.19 [-0.25, -0.12]  | minus bool -0.11 [-0.18, -0.05]
+  dur bool       acc 0.639  base 0.52  norm +0.25 [+0.15, +0.35]
+  dur single     acc 0.432  base 0.28  norm +0.21 [+0.15, +0.27]  | minus bool -0.04 [-0.11, +0.04]
+  dur seconds    acc 0.141  base 0.26  norm -0.16 [-0.20, -0.12]  | minus bool -0.41 [-0.50, -0.32]
+  loc bool       acc 0.744  base 0.50  norm +0.49 [+0.41, +0.57]
+  loc single     acc 0.850  base 0.22  norm +0.81 [+0.76, +0.85]  | minus bool +0.32 [+0.24, +0.40]
+  loc seconds    acc 0.348  base 0.06  norm +0.31 [+0.26, +0.36]  | minus bool -0.18 [-0.26, -0.10]
+
+Argon
+  dur bool       acc 0.900  base 0.52  norm +0.79 [+0.73, +0.85]
+  dur single     acc 0.752  base 0.28  norm +0.66 [+0.59, +0.72]  | minus bool -0.14 [-0.20, -0.07]
+  loc bool       acc 0.947  base 0.50  norm +0.89 [+0.85, +0.93]
+  loc single     acc 0.973  base 0.22  norm +0.96 [+0.94, +0.98]  | minus bool +0.07 [+0.03, +0.11]
+  loc seconds    acc 0.730  base 0.06  norm +0.71 [+0.66, +0.76]  | minus bool -0.18 [-0.24, -0.12]
+
+=== 2.2 error row: accuracy on steps with a mistake / without (k = 1) ===
+mistake               False  True 
+model      type                   
+Flash-Lite bool       0.734  0.320
+           int        0.578  0.160
+           multi      0.672  0.223
+           open_text  0.688  0.125
+           single     0.879  0.137
+Qwen       bool       0.809  0.117
+           int        0.957  0.078
+           multi      0.680  0.262
+           open_text  0.793  0.020
+           single     0.680  0.328
+
+--- bool: share answered yes, by true answer (k = 1) ---
+target              False  True 
+model      content              
+Argon      dur      0.084  0.898
+           loc      0.016  0.941
+Flash-Lite dur      0.070  0.209
+           err      0.676  0.746
+           loc      0.162  0.143
+Qwen       dur      0.062  0.402
+           err      0.870  0.908
+           loc      0.070  0.655
+
+=== 2.3 model x type interaction (logit y ~ model * type + cell-free content), cluster by recording ===
+  Wald dur+loc: model x type: chi2=93.64 df=4 p=0.0000
+  Wald err: Flash-Lite vs Qwen, model x type: chi2=74.00 df=4 p=0.0000
+
+=== 2.4 agreement across types: mean phi of the correct/incorrect indicators over type pairs, same fact ===
+  Flash-Lite err: all facts +0.446 | mistake only +0.163 | no mistake only +0.321
+  Flash-Lite dur: all facts +0.292
+  Flash-Lite loc: all facts +0.107
+  Qwen       err: all facts +0.530 | mistake only +0.254 | no mistake only +0.286
+  Qwen       dur: all facts +0.296
+  Qwen       loc: all facts +0.154
+  Argon      loc: all facts +0.279

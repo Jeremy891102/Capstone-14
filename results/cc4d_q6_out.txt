@@ -1,0 +1,135 @@
+pairs (facts in both orders): model       exp          k 
+Argon       base         8     2560
+Flash-Lite  base         4     5632
+                         8     5632
+            e5_dur_base  4     2112
+                         8     2112
+                         16    2112
+            e5_loc_base  4     1920
+                         8     1920
+                         16    1920
+Qwen        base         4     5632
+                         8     5632
+            e5_dur_base  4     2112
+                         8     2112
+                         16    2112
+            e5_loc_base  4     1920
+                         8     1920
+                         16    1920
+
+=== 6.1 reversed - forward accuracy (pt) [95% CI], same fact ===
+Argon      base         k= 8 fwd  86.7% rev  85.9%  rev-fwd  -0.7 [ -2.1,  +0.4] (n=2560)
+Flash-Lite base         k= 4 fwd  41.3% rev  41.3%  rev-fwd  -0.0 [ -1.2,  +1.3] (n=5632)
+Flash-Lite base         k= 8 fwd  41.2% rev  40.3%  rev-fwd  -0.9 [ -2.0,  +0.3] (n=5632)
+Flash-Lite e5_dur_base  k= 4 fwd  31.6% rev  31.7%  rev-fwd  +0.1 [ -1.7,  +1.8] (n=2112)
+Flash-Lite e5_dur_base  k= 8 fwd  29.5% rev  29.9%  rev-fwd  +0.4 [ -1.1,  +1.9] (n=2112)
+Flash-Lite e5_dur_base  k=16 fwd  29.7% rev  27.1%  rev-fwd  -2.6 [ -4.5,  -0.5] (n=2112)
+Flash-Lite e5_loc_base  k= 4 fwd  35.7% rev  36.2%  rev-fwd  +0.5 [ -1.2,  +2.3] (n=1920)
+Flash-Lite e5_loc_base  k= 8 fwd  36.7% rev  36.1%  rev-fwd  -0.6 [ -2.7,  +1.5] (n=1920)
+Flash-Lite e5_loc_base  k=16 fwd  37.7% rev  36.4%  rev-fwd  -1.4 [ -3.8,  +1.2] (n=1920)
+Qwen       base         k= 4 fwd  48.3% rev  49.0%  rev-fwd  +0.7 [ -0.5,  +1.8] (n=5632)
+Qwen       base         k= 8 fwd  47.9% rev  43.7%  rev-fwd  -4.2 [ -5.6,  -2.7] (n=5632)
+Qwen       e5_dur_base  k= 4 fwd  34.7% rev  34.8%  rev-fwd  +0.1 [ -1.0,  +1.3] (n=2112)
+Qwen       e5_dur_base  k= 8 fwd  32.1% rev  30.3%  rev-fwd  -1.9 [ -3.6,  +0.1] (n=2112)
+Qwen       e5_dur_base  k=16 fwd  32.1% rev  25.3%  rev-fwd  -6.8 [ -9.4,  -4.2] (n=2112)
+Qwen       e5_loc_base  k= 4 fwd  57.7% rev  57.8%  rev-fwd  +0.2 [ -1.2,  +1.5] (n=1920)
+Qwen       e5_loc_base  k= 8 fwd  54.6% rev  52.5%  rev-fwd  -2.1 [ -4.7,  +0.6] (n=1920)
+Qwen       e5_loc_base  k=16 fwd  53.5% rev  34.5%  rev-fwd -19.0 [-22.5, -14.9] (n=1920)
+
+=== 6.2 position: same fact, late position minus early position (pt); facts at the middle (odd k) excluded ===
+Argon      base         k= 8 late - early  -0.2 [ -1.2,  +0.9]
+Flash-Lite base         k= 4 late - early  +0.6 [ -0.7,  +1.7]
+Flash-Lite base         k= 8 late - early  -0.4 [ -1.3,  +0.5]
+Flash-Lite e5_dur_base  k= 4 late - early  +0.8 [ -0.6,  +2.1]
+Flash-Lite e5_dur_base  k= 8 late - early  -0.3 [ -1.9,  +1.3]
+Flash-Lite e5_dur_base  k=16 late - early  -1.2 [ -2.7,  +0.2]
+Flash-Lite e5_loc_base  k= 4 late - early  +1.7 [ -0.2,  +3.4]
+Flash-Lite e5_loc_base  k= 8 late - early  -0.6 [ -2.4,  +1.1]
+Flash-Lite e5_loc_base  k=16 late - early  +0.7 [ -1.3,  +2.8]
+Qwen       base         k= 4 late - early  +0.2 [ -0.9,  +1.3]
+Qwen       base         k= 8 late - early  +1.2 [ +0.2,  +2.1]
+Qwen       e5_dur_base  k= 4 late - early  +0.3 [ -0.9,  +1.5]
+Qwen       e5_dur_base  k= 8 late - early  -1.6 [ -3.6,  +0.4]
+Qwen       e5_dur_base  k=16 late - early  -0.7 [ -2.9,  +1.3]
+Qwen       e5_loc_base  k= 4 late - early  -0.8 [ -2.7,  +1.0]
+Qwen       e5_loc_base  k= 8 late - early  -0.5 [ -2.2,  +1.2]
+Qwen       e5_loc_base  k=16 late - early  +3.2 [ +0.4,  +6.0]
+
+accuracy by position, k = 8 main, forward / reversed:
+  Flash-Lite p1 39/45 p2 39/37 p3 43/36 p4 45/44 p5 46/42 p6 35/42 p7 38/39 p8 44/38
+  Qwen       p1 47/44 p2 48/42 p3 48/43 p4 48/41 p5 52/40 p6 47/46 p7 43/48 p8 49/46
+  Argon      p1 88/85 p2 88/90 p3 86/84 p4 82/89 p5 90/84 p6 85/86 p7 87/86 p8 88/84
+
+logit y ~ posfrac + rev + cell (k = 8, main): posfrac = position effect, rev = reversed-order effect at the same position
+  Flash-Lite posfrac -0.030 [-0.100, +0.040] p=0.400 | rev -0.039 [-0.088, +0.011] p=0.125
+  Qwen       posfrac +0.073 [+0.004, +0.142] p=0.039 | rev -0.187 [-0.252, -0.122] p=0.000
+  Argon      posfrac -0.088 [-0.245, +0.069] p=0.273 | rev -0.069 [-0.187, +0.049] p=0.254
+
+=== 6.3 rev - fwd by cell, k = 8 (pt) ===
+Flash-Lite
+   dur bool        -1.2 [ -3.7,  +1.4] (n=512)
+   dur seconds     +1.0 [ -2.8,  +4.7] (n=512)
+   dur single      -0.8 [ -4.8,  +3.4] (n=512)
+   err bool        -3.1 [ -5.6,  -0.7] (n=512)
+   err int         -1.0 [ -4.4,  +2.4] (n=512)
+   err multi       -0.8 [ -4.5,  +2.8] (n=512)
+   err open_text   -2.0 [ -4.7,  +0.9] (n=512)
+   err single      +0.4 [ -2.2,  +2.9] (n=512)
+   loc bool        -0.2 [ -3.0,  +2.5] (n=512)
+   loc seconds     +0.0 [ -2.9,  +3.1] (n=512)
+   loc single      -2.1 [ -8.1,  +4.1] (n=512)
+Qwen
+   dur bool       -10.5 [-15.4,  -5.5] (n=512)
+   dur seconds     -1.0 [ -4.2,  +2.3] (n=512)
+   dur single      -4.3 [ -7.7,  -0.9] (n=512)
+   err bool        -1.4 [ -6.2,  +3.6] (n=512)
+   err int         -0.2 [ -0.6,  +0.0] (n=512)
+   err multi       +0.4 [ -2.9,  +3.7] (n=512)
+   err open_text   +0.2 [ -1.7,  +2.0] (n=512)
+   err single      -0.4 [ -2.3,  +1.6] (n=512)
+   loc bool        -0.8 [ -7.1,  +5.6] (n=512)
+   loc seconds    -11.7 [-16.1,  -7.6] (n=512)
+   loc single     -16.4 [-20.4, -11.7] (n=512)
+Argon
+   dur bool        +0.2 [ -2.2,  +2.5] (n=512)
+   dur single      -0.4 [ -3.5,  +2.6] (n=512)
+   loc bool        -0.8 [ -2.6,  +1.0] (n=512)
+   loc seconds     -2.5 [ -5.8,  +0.6] (n=512)
+   loc single      -0.2 [ -1.3,  +0.7] (n=512)
+  Wald Flash-Lite: rev x cell (k = 8): chi2=5.48 df=10 p=0.8566
+  Wald Qwen: rev x cell (k = 8): chi2=140.16 df=10 p=0.0000
+  Wald Argon: rev x cell (k = 8): chi2=1.64 df=4 p=0.8012
+
+rev - fwd by k (main for k = 4, 8; E5 loc / dur for k = 4, 8, 16):
+  Flash-Lite base         k=4  -0.0 [ -1.2,  +1.3] | k=8  -0.9 [ -2.0,  +0.3]
+  Flash-Lite e5_loc_base  k=4  +0.5 [ -1.2,  +2.3] | k=8  -0.6 [ -2.7,  +1.5] | k=16  -1.4 [ -3.8,  +1.2]
+  Flash-Lite e5_dur_base  k=4  +0.1 [ -1.7,  +1.8] | k=8  +0.4 [ -1.1,  +1.9] | k=16  -2.6 [ -4.5,  -0.5]
+    Flash-Lite: rev x log2(k) coef -0.038 p=0.242
+  Qwen       base         k=4  +0.7 [ -0.5,  +1.8] | k=8  -4.2 [ -5.6,  -2.7]
+  Qwen       e5_loc_base  k=4  +0.2 [ -1.2,  +1.5] | k=8  -2.1 [ -4.7,  +0.6] | k=16 -19.0 [-22.5, -14.9]
+  Qwen       e5_dur_base  k=4  +0.1 [ -1.0,  +1.3] | k=8  -1.9 [ -3.6,  +0.1] | k=16  -6.8 [ -9.4,  -4.2]
+    Qwen: rev x log2(k) coef -0.219 p=0.000
+  Argon      base         k=8  -0.7 [ -2.1,  +0.4]
+
+=== 6.4 invalid answers (counted as wrong): share, forward vs reversed; and rev - fwd among pairs valid in both ===
+Argon      base         k= 8 invalid fwd  0.0% rev  0.0% | valid in both (n=2560): rev-fwd  -0.7 [ -2.1,  +0.4]
+Flash-Lite base         k= 8 invalid fwd  0.8% rev  0.5% | valid in both (n=5566): rev-fwd  -1.1 [ -2.2,  +0.1]
+Flash-Lite e5_dur_base  k= 4 invalid fwd  0.0% rev  0.0% | valid in both (n=2112): rev-fwd  +0.1 [ -1.7,  +1.8]
+Flash-Lite e5_dur_base  k= 8 invalid fwd  0.0% rev  0.8% | valid in both (n=2096): rev-fwd  +0.5 [ -1.0,  +2.1]
+Flash-Lite e5_dur_base  k=16 invalid fwd  0.0% rev  3.0% | valid in both (n=2048): rev-fwd  -1.6 [ -3.6,  +0.6]
+Flash-Lite e5_loc_base  k= 4 invalid fwd  0.9% rev  0.6% | valid in both (n=1892): rev-fwd  +0.5 [ -1.2,  +2.4]
+Flash-Lite e5_loc_base  k= 8 invalid fwd  1.0% rev  2.7% | valid in both (n=1852): rev-fwd  +0.1 [ -1.9,  +2.1]
+Flash-Lite e5_loc_base  k=16 invalid fwd  0.0% rev  2.7% | valid in both (n=1869): rev-fwd  -0.4 [ -2.5,  +1.7]
+Qwen       base         k= 8 invalid fwd  0.0% rev  0.1% | valid in both (n=5627): rev-fwd  -4.2 [ -5.6,  -2.7]
+Qwen       e5_dur_base  k= 4 invalid fwd  0.0% rev  0.0% | valid in both (n=2112): rev-fwd  +0.1 [ -1.0,  +1.3]
+Qwen       e5_dur_base  k= 8 invalid fwd  0.0% rev  0.0% | valid in both (n=2112): rev-fwd  -1.9 [ -3.6,  +0.1]
+Qwen       e5_dur_base  k=16 invalid fwd  0.0% rev  0.0% | valid in both (n=2112): rev-fwd  -6.8 [ -9.4,  -4.2]
+Qwen       e5_loc_base  k= 4 invalid fwd  0.0% rev  0.0% | valid in both (n=1920): rev-fwd  +0.2 [ -1.2,  +1.5]
+Qwen       e5_loc_base  k= 8 invalid fwd  0.0% rev  0.0% | valid in both (n=1920): rev-fwd  -2.1 [ -4.7,  +0.6]
+Qwen       e5_loc_base  k=16 invalid fwd  0.0% rev  0.0% | valid in both (n=1920): rev-fwd -19.0 [-22.5, -14.9]
+
+=== 6.5 do the models agree? 5 common cells, k = 8 (logit y ~ rev * model + cell) ===
+  Flash-Lite rev-fwd  -0.9 [ -2.5,  +0.8] (n=2560)
+  Qwen       rev-fwd  -8.8 [-11.2,  -6.3] (n=2560)
+  Argon      rev-fwd  -0.7 [ -2.1,  +0.4] (n=2560)
+  Wald rev x model: chi2=36.48 df=2 p=0.0000

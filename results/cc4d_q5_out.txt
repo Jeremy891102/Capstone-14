@@ -1,0 +1,118 @@
+not-done items loaded: order                    fwd     rev
+model      exp    k                 
+Flash-Lite e5_dur 1     57.0     NaN
+                  4    144.0   144.0
+                  8     72.0    72.0
+                  16    36.0    34.0
+           e5_loc 1     36.0     NaN
+                  4     96.0    94.0
+                  8     48.0    48.0
+                  16    24.0    24.0
+           main   1   1144.0     NaN
+                  4   1012.0  1012.0
+                  8    507.0   508.0
+Qwen       e5_dur 1     57.0     NaN
+                  4    144.0   144.0
+                  8     72.0    72.0
+                  16    36.0    36.0
+           e5_loc 1     36.0     NaN
+                  4     96.0    96.0
+                  8     48.0    48.0
+                  16    24.0    24.0
+           main   1   1184.0     NaN
+                  4   1028.0  1030.0
+                  8    515.0   515.0
+
+=== 5.1 hallucination rate at k = 1 (E1, main), by answer type; % of valid answers on not-done steps ===
+Flash-Lite overall  67.4% [61.5, 73.2] (n=1144)
+   dur bool        74.1% [65.1, 82.1] (n=108)
+   dur seconds     51.9% [41.4, 62.0] (n=108)
+   dur single      51.9% [42.5, 61.2] (n=108)
+   err bool        85.2% [79.4, 91.1] (n=108)
+   err int         72.2% [63.6, 80.4] (n=108)
+   err multi       64.0% [52.6, 74.6] (n=75)
+   err open_text   88.0% [82.3, 93.1] (n=108)
+   err single      69.7% [59.6, 79.6] (n=99)
+   loc bool        97.2% [94.1, 100.0] (n=108)
+   loc seconds     58.9% [47.9, 69.8] (n=107)
+   loc single      27.1% [17.6, 36.4] (n=107)
+Qwen overall  70.4% [63.3, 76.8] (n=1184)
+   dur bool        63.0% [52.0, 73.3] (n=108)
+   dur seconds     88.9% [81.2, 95.0] (n=108)
+   dur single      64.8% [54.6, 74.5] (n=108)
+   err bool        37.0% [26.9, 47.3] (n=108)
+   err int         87.0% [80.0, 93.0] (n=108)
+   err multi       91.3% [85.9, 96.1] (n=104)
+   err open_text   45.4% [35.2, 55.6] (n=108)
+   err single      74.1% [64.9, 82.4] (n=108)
+   loc bool        66.7% [56.8, 76.1] (n=108)
+   loc seconds     86.1% [77.6, 93.0] (n=108)
+   loc single      70.4% [60.8, 79.3] (n=108)
+
+false not-done at k = 1 (filmed steps answered not_visible):
+Flash-Lite overall 2.9% dur bool 2.3% | dur seconds 3.1% | dur single 1.8% | err bool 1.4% | err int 1.0% | err multi 1.6% | err open_text 1.2% | err single 2.0% | loc bool 1.4% | loc seconds 2.3% | loc single 13.9%
+Qwen overall 4.3% dur bool 4.5% | dur seconds 0.2% | dur single 4.7% | err bool 10.5% | err int 0.4% | err multi 0.6% | err open_text 17.4% | err single 2.9% | loc bool 5.3% | loc seconds 0.2% | loc single 0.8%
+
+=== 5.2 hallucination rate by question count (same not-done steps at every k; forward order) ===
+Flash-Lite k=1  65.8% [58.9, 73.3] (n=489) | k=4  50.4% [41.8, 60.2] (n=692) | k=8  52.4% [44.2, 60.8] (n=489)
+   logit per doubling of k: -0.246 [-0.332, -0.160] p=0.000
+Qwen k=1  70.3% [61.0, 78.8] (n=511) | k=4  73.5% [63.5, 82.7] (n=727) | k=8  76.7% [68.6, 84.5] (n=511)
+   logit per doubling of k: +0.113 [+0.044, +0.181] p=0.001
+
+by type, hallucination at k = 1 / 4 / 8 (common items):
+   Flash-Lite bool         91% /   69% /   72%
+   Flash-Lite single       50% /   32% /   35%
+   Flash-Lite multi        50% /   41% /   42%
+   Flash-Lite int          62% /   52% /   68%
+   Flash-Lite open_text    91% /   70% /   62%
+   Flash-Lite seconds      44% /   39% /   38%
+   Qwen       bool         60% /   64% /   68%
+   Qwen       single       69% /   73% /   75%
+   Qwen       multi        90% /   86% /   83%
+   Qwen       int          83% /   88% /   98%
+   Qwen       open_text    51% /   57% /   62%
+   Qwen       seconds      83% /   84% /   86%
+
+E5 (longer videos), k = 1 / 4 / 8 / 16, forward:
+  Flash-Lite loc k=1   81% (n=36) | k=4   64% (n=96) | k=8   65% (n=48) | k=16   62% (n=24)
+  Flash-Lite dur k=1   61% (n=57) | k=4   40% (n=144) | k=8   43% (n=72) | k=16   53% (n=36)
+  Qwen       loc k=1   94% (n=36) | k=4   89% (n=96) | k=8   88% (n=48) | k=16   83% (n=24)
+  Qwen       dur k=1   95% (n=57) | k=4   96% (n=144) | k=8   97% (n=72) | k=16   97% (n=36)
+
+false not-done (filmed steps answered not_visible) by k, base group, forward:
+  Flash-Lite k=1 2.9% | k=4 6.1% | k=8 6.4%
+     by type: bool 2/3/2; int 1/3/4; multi 2/5/7; open_text 1/5/8; seconds 3/4/4; single 6/12/12
+  Qwen       k=1 4.3% | k=4 4.5% | k=8 4.8%
+     by type: bool 7/8/11; int 0/0/0; multi 1/1/4; open_text 17/13/6; seconds 0/0/0; single 3/3/3
+
+=== 5.3 hallucination by the not-done step's position in the call (H batches, forward + reversed) ===
+Flash-Lite: posfrac coef -0.007 [-0.154, +0.140] p=0.925  (0 = first, 1 = last)
+   k=8 by position 1..8: 54%(n=126) 48%(n=128) 50%(n=128) 52%(n=129) 50%(n=130) 47%(n=126) 56%(n=125) 57%(n=123)
+   k=4 by position 1..4: 56%(n=508) 41%(n=509) 48%(n=503) 52%(n=504)
+Qwen: posfrac coef +0.153 [-0.028, +0.333] p=0.098  (0 = first, 1 = last)
+   k=8 by position 1..8: 74%(n=126) 74%(n=129) 76%(n=131) 78%(n=131) 82%(n=130) 80%(n=128) 82%(n=129) 80%(n=126)
+   k=4 by position 1..4: 76%(n=516) 70%(n=517) 69%(n=513) 77%(n=512)
+
+=== 5.4 other questions of an H batch (H batch) vs the same question in the original batch; accuracy pt [95% CI] ===
+  Flash-Lite k=4 fwd: -0.3 [-1.3, +0.8] (n=3102, right->wrong 210, wrong->right 201)
+  Flash-Lite k=4 rev: -1.1 [-2.2, -0.1] (n=3102, right->wrong 216, wrong->right 182)
+  Flash-Lite k=8 fwd: +0.2 [-0.9, +1.2] (n=3619, right->wrong 218, wrong->right 224)
+  Flash-Lite k=8 rev: +1.0 [-0.2, +2.2] (n=3619, right->wrong 179, wrong->right 216)
+  Qwen       k=4 fwd: -1.0 [-1.8, -0.1] (n=3102, right->wrong 106, wrong->right 76)
+  Qwen       k=4 rev: -0.5 [-1.6, +0.6] (n=3102, right->wrong 108, wrong->right 92)
+  Qwen       k=8 fwd: -0.7 [-1.7, +0.4] (n=3619, right->wrong 92, wrong->right 68)
+  Qwen       k=8 rev: -0.1 [-1.3, +1.1] (n=3619, right->wrong 129, wrong->right 127)
+
+=== 5.5 error row: no-mistake step called wrong (1 - accuracy on no-mistake steps), by type and k ===
+Flash-Lite  (false-alarm % at k = 1 / 4 / 8)
+   bool         27% /   18% /   21%
+   single       12% /   16% /   13%
+   multi        33% /   13% /   16%
+   int          42% /   20% /   14%
+   open_text    31% /   23% /   18%
+Qwen  (false-alarm % at k = 1 / 4 / 8)
+   bool         19% /   16% /   19%
+   single       32% /   12% /    8%
+   multi        32% /   14% /    9%
+   int           4% /    1% /    0%
+   open_text    21% /   13% /    7%
