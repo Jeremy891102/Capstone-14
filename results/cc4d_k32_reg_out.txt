@@ -1,0 +1,41 @@
+=== 7.7 effect on accuracy (pt) per doubling, question fixed effects, 95% bootstrap over recordings ===
+-- both regressors, all questions
+all              log2 batch size        -0.19 [-0.91, +0.48]  log2                   -0.41 [-0.87, +0.06]  reversed               -0.29 [-1.39, +0.79]
+-- batch size only / position only (what the earlier pooled slope mixed)
+batch size only  log2 batch size        -0.56 [-1.16, -0.09]  reversed               -0.28 [-1.39, +0.80]
+position only    log2                   -0.51 [-0.93, -0.14]  reversed               -0.29 [-1.40, +0.79]
+-- by content
+correct          log2 batch size        -0.01 [-1.19, +1.14]  log2                   -0.19 [-1.17, +0.66]  reversed               -1.83 [-3.45, -0.01]
+error_types      log2 batch size        +0.05 [-1.23, +1.19]  log2                   -0.62 [-1.42, +0.20]  reversed               -0.07 [-1.83, +1.55]
+duration         log2 batch size        -0.60 [-1.56, +0.33]  log2                   -0.17 [-0.87, +0.54]  reversed               +0.53 [-1.03, +2.00]
+recording-level  log2 batch size        -0.55 [-2.03, +0.91]  log2                   -1.03 [-2.95, +0.65]  reversed               -0.72 [-6.05, +4.58]
+-- by answer type
+bool             log2 batch size        -0.06 [-1.20, +1.02]  log2                   -0.32 [-1.13, +0.45]  reversed               -1.59 [-3.19, +0.10]
+multi_choice     log2 batch size        +0.05 [-1.23, +1.19]  log2                   -0.62 [-1.42, +0.20]  reversed               -0.07 [-1.83, +1.55]
+seconds          log2 batch size        -0.62 [-1.48, +0.17]  log2                   -0.31 [-0.97, +0.35]  reversed               +0.82 [-0.59, +2.19]
+
+=== 7.8 baselines (best constant answer) ===
+  correct         n= 952  base 0.567
+  error_types     n= 951  base 0.433
+  duration        n= 951  base 0.228
+  order_violated  n=  64  base 0.562
+  steps_done      n=  64  base 0.188
+  total_duration  n=  64  base 0.641
+  longest_step    n=  47  base 0.213
+
+-- pooled normalized accuracy by k (0 = best constant answer, 1 = all correct)
+fwd k=8: +0.35 [+0.31, +0.39]  k=16: +0.35 [+0.32, +0.38]  k=32: +0.32 [+0.28, +0.36]  k=all: +0.32 [+0.28, +0.36]
+rev k=8: +0.34 [+0.31, +0.38]  k=16: +0.32 [+0.28, +0.36]  k=32: +0.33 [+0.29, +0.37]  k=all: +0.32 [+0.28, +0.36]
+both k=8: +0.34 [+0.31, +0.38]  k=16: +0.34 [+0.30, +0.37]  k=32: +0.33 [+0.29, +0.36]  k=all: +0.32 [+0.28, +0.35]
+-- by cell (both orders)
+  correct         base 0.57  raw 69 68 69 68  norm +0.28  +0.26  +0.29  +0.25
+  error_types     base 0.43  raw 47 45 44 45  norm +0.06  +0.04  +0.02  +0.03
+  duration        base 0.23  raw 64 64 63 62  norm +0.53  +0.54  +0.52  +0.51
+  order_violated  base 0.56  raw 68 69 66 64  norm +0.27  +0.29  +0.23  +0.18
+  steps_done      base 0.19  raw 73 66 71 71  norm +0.67  +0.59  +0.64  +0.64
+  total_duration  base 0.64  raw 96 97 90 91  norm +0.89  +0.91  +0.72  +0.74
+  longest_step    base 0.21  raw 85 85 84 87  norm +0.81  +0.81  +0.80  +0.84
+-- error_types: steps with mistakes (constant 'no mistake' baseline = 0)
+  no mistake    k=8:65.3 k=16:63.3 k=32:63.7 k=all:64.7
+  has mistakes  k=8:32.3 k=16:31.7 k=32:29.7 k=all:29.8
+all (2 regressors) log2 batch size        -0.19 [-0.92, +0.48]  log2                   -0.41 [-0.87, +0.06]
