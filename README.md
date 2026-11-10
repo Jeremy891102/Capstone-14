@@ -10,6 +10,7 @@ This is a small, testable harness for experiments that turn **egocentric task vi
 * Each run is frozen, resumable, and evaluated offline in a separate step.
 
 Docs:
+* [HD-EPIC four-model baseline](results/hd_epic_q40_v1_four_model_baseline_20261110/README.md): matched batch-size comparison, offline HTML report, and reproducible results.
 * [Baseline results and analysis guide](results/hd_epic_q40_v1_gemini35_flash_lite_20261020/README.md): completed HD-EPIC results, three-page report, saved predictions and offline commands.
 * [docs/multi_provider_pilot.md](docs/multi_provider_pilot.md): OpenAI, Dennis's Vertex Gemini,
   local key setup, and the single-type nested localization pilot (offline-verified only).
