@@ -129,6 +129,8 @@ class VideoConfig(_Strict):
     # Send report time ranges as clip offsets. If False, time ranges are dropped *explicitly*
     # (recorded in the frozen config) and whole videos are sent.
     use_time_range: bool = True
+    # False = send no video at all (text-only control run).
+    enabled: bool = True
 
 
 class ExecutionConfig(_Strict):

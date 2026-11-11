@@ -1,13 +1,14 @@
 """Build rows.json.gz (format in cc4d_k32.py) from evaluated k32 runs.
-python results/cc4d_k32_rows.py RUNS_DIR OUT.json.gz   (run from the repo root; needs data/cc4d_k32_v1)"""
+python results/cc4d_k32_rows.py RUNS_DIR OUT.json.gz [RUN_PREFIX=k32]   (run from the repo root; needs data/cc4d_k32_v1)"""
 import glob, gzip, json, re, sys
 
 runs, out = sys.argv[1:3]
+pre = sys.argv[3] if len(sys.argv) > 3 else "k32"
 rows = []
 for o in ("fwd", "rev"):
     gt = {(g["report_id"], g["field_id"]): g["target"] for g in map(json.loads, open(f"data/cc4d_k32_v1/{o}/ground_truth.jsonl"))}
     for k in ("8", "16", "32", "all"):
-        r = f"{runs}/k32_{o}_k{k}"
+        r = f"{runs}/{pre}_{o}_k{k}"
         fs = [json.loads(x) for x in open(sorted(glob.glob(f"{r}/evaluations/2*/field_scores.jsonl"))[-1])]
         pos = {}  # (call_id, field) -> (index from end, call length)
         for c in glob.glob(f"{r}/calls/*.json"):

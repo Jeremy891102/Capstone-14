@@ -37,6 +37,7 @@ def main():
     ap.add_argument("--video-root", required=True)
     ap.add_argument("--provider", choices=["gemini", "vllm"], default="gemini")
     ap.add_argument("--model", default=None, help="default: gemini-4-argon, or qwen3-vl-32b for vllm")
+    ap.add_argument("--no-video", action="store_true", help="text-only control: same prompts, no video sent")
     ap.add_argument("--pilot", nargs="*", default=[])
     args = ap.parse_args()
 
@@ -115,7 +116,7 @@ def main():
                 "base_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/",
             },
         },
-        "video": {"use_time_range": True, "fps": 2.0},
+        "video": {"use_time_range": True, "fps": 2.0, **({"enabled": False} if args.no_video else {})},
         "generation": {"temperature": 0.0, "max_output_tokens": 4096 if vllm else 8192, "response_format": "json"},
         "execution": {"concurrency": 2, "max_attempts": 3, "timeout_s": 900} if vllm else {"concurrency": 4, "max_attempts": 3, "timeout_s": 600},
         "pricing": None if vllm else {
@@ -130,7 +131,7 @@ def main():
             cdir.mkdir(parents=True, exist_ok=True)
             rel = lambda p, c=cdir: os.path.relpath(p.resolve(), c.resolve())  # noqa: E731
             cfg = {
-                "name": f"cc4d_k32_{order}_k{label}",
+                "name": f"cc4d_k32{'_novideo' if args.no_video else ''}_{order}_k{label}",
                 "description": f"CC4D full-report batching, {order}, k={label}.",
                 "data": {"benchmark": rel(args.out / order), "require_local_videos": True, "video_root": os.path.expanduser(args.video_root)},
                 "method": {"name": "batched", "batch_size": k},

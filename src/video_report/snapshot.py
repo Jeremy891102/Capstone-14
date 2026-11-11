@@ -125,7 +125,7 @@ def build_snapshot(
         fields = [report.field(f) for f in call.field_ids]
         system, user = render(templates, fields, report.input.context, cfg.prompt.context_keys)
         videos = []
-        for ref, rv in zip(report.input.videos, resolved[report.id], strict=True):
+        for ref, rv in zip(report.input.videos, resolved[report.id], strict=True) if cfg.video.enabled else ():
             tr = ref.time_range if cfg.video.use_time_range else None
             videos.append(
                 VideoInput(
