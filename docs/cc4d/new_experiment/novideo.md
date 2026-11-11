@@ -45,6 +45,35 @@ Top: accuracy (ordinary questions only, abstention questions excluded, as in q7)
 
 (Share of made-up answers, %; both directions pooled.) Argon's abstention only appears with the video, so it really uses the video to judge "this step was not done". Qwen's hallucination rate with video is about the same as without, so the video does not help it recognise steps that were not done.
 
+## False abstention and hallucination side by side (with video / no video)
+
+**Conclusion:** With video, Argon's hallucination rate falls sharply as batches grow (k = all: 53% forward, 24% reversed) while its false-abstention rate stays ≤ 1.8%, so the drop is not bought with indiscriminate abstaining; without video neither model can tell skipped steps from filmed ones. Qwen without video, reversed, k = 8–32 abstains on about 21–25% of skipped-step questions and also on 15–23% of filmed-step questions, about the same on both, i.e. random abstention.
+
+![abstention](figs/abstention.png)
+
+Top: hallucination rate = skipped-step questions answered with anything other than `not_visible` ÷ all skipped-step questions (324 per cell). Bottom: false-abstention rate = filmed-step questions answered `not_visible` ÷ all filmed-step questions (2,918 per cell; per-step questions only, whole-recording questions excluded). Blue = with video, grey = no video, solid = forward, dashed = reversed.
+
+| Model | Order | k | Hallucination with / no video | False abstention with / no video |
+| --- | --- | --- | --- | --- |
+| Qwen3-VL-32B | Forward | 8 | 94.4 / 92.9 | 0.3 / 9.5 |
+| Qwen3-VL-32B | Forward | 16 | 96.9 / 93.2 | 0.1 / 6.5 |
+| Qwen3-VL-32B | Forward | 32 | 97.8 / 96.0 | 0.0 / 3.7 |
+| Qwen3-VL-32B | Forward | all | 96.3 / 100.0 | 0.3 / 0.0 |
+| Qwen3-VL-32B | Reversed | 8 | 87.0 / 78.7 | 1.8 / 21.4 |
+| Qwen3-VL-32B | Reversed | 16 | 91.0 / 75.3 | 1.7 / 23.4 |
+| Qwen3-VL-32B | Reversed | 32 | 97.2 / 79.3 | 0.3 / 15.5 |
+| Qwen3-VL-32B | Reversed | all | 98.8 / 100.0 | 0.1 / 0.0 |
+| Argon | Forward | 8 | 88.0 / 92.9 | 0.2 / 4.8 |
+| Argon | Forward | 16 | 84.9 / 98.5 | 0.5 / 2.0 |
+| Argon | Forward | 32 | 75.9 / 99.7 | 0.4 / 1.5 |
+| Argon | Forward | all | 53.4 / 94.1 | 1.1 / 2.2 |
+| Argon | Reversed | 8 | 80.9 / 93.2 | 0.3 / 6.8 |
+| Argon | Reversed | 16 | 78.4 / 96.6 | 0.3 / 0.7 |
+| Argon | Reversed | 32 | 74.1 / 98.8 | 0.7 / 1.1 |
+| Argon | Reversed | all | 24.4 / 95.1 | 1.8 / 3.2 |
+
+(%; script `results/cc4d_k32_abstention.py`.)
+
 ## Video gain by question type (pt)
 
 **Conclusion:** For Qwen the gain shrinks monotonically with k for every question type and is ≈ 0 or negative at k = all; for Argon seconds and single-choice barely drop, and what drops is mainly multi-choice (−7.5) and integer.
