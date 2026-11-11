@@ -2,17 +2,20 @@
 7.7 batch size and position separated: linear probability model with question fixed effects,
     y = b1*log2(call length) + b2*log2(questions after it + 1) + b3*reversed, bootstrap over recordings.
 7.8 baseline-normalized accuracy as in Q1-Q6: (acc - base) / (1 - base), base = best constant answer.
-Reads results/cc4d_k32_v1_gemini4_argon_20261109/rows.json.gz and data/cc4d_k32_v1/fwd/ground_truth.jsonl.
+Reads results/cc4d_k32_v1_<model>/rows.json.gz (K32_MODEL=argon|qwen) and data/cc4d_k32_v1/fwd/ground_truth.jsonl.
     python results/cc4d_k32_reg.py"""
-import collections, gzip, json, pathlib, re
+import collections, gzip, json, os, pathlib, re
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from cc4d_k32_panels import save_panels
 
 H = pathlib.Path(__file__).parent
-OUT = H.parent / "docs/cc4d/new_experiment/figs"
-rows = json.load(gzip.open(H / "cc4d_k32_v1_gemini4_argon_20261109/rows.json.gz", "rt"))
+OUT = H.parent / "docs/cc4d/new_experiment/figs/parts"; OUT.mkdir(exist_ok=True, parents=True)
+MODEL = os.environ.get("K32_MODEL", "argon")  # argon | qwen; cc4d_k32_figs.py runs both and stitches the figures
+RUNS = {"argon": "cc4d_k32_v1_gemini4_argon_20261109", "qwen": "cc4d_k32_v1_qwen3vl32b_20261110"}[MODEL]
+rows = json.load(gzip.open(H / RUNS / "rows.json.gz", "rt"))
 cols = ["o", "k", "rep", "f", "a", "ok", "ab", "nv", "end", "n", "nm"]
 D = {c: np.array([r[i] for r in rows]) for i, c in enumerate(cols)}
 gt = {}
@@ -128,11 +131,11 @@ fig, ax = plt.subplots(1, 2, figsize=(9.5, 3.8))
 lab = {"correct": "done correctly? (bool)", "error_types": "what mistakes? (multi)", "duration": "step seconds", "order_violated": "order violated (bool)", "steps_done": "steps done (int)", "total_duration": "total seconds", "longest_step": "longest step (single)"}
 for c in ("correct", "error_types", "duration"):
     ax[0].plot(range(4), [t[0] for t in NC[c]], marker="o", label=lab[c])
-ax[0].axhline(0, color="k", lw=.8, ls="--"); ax[0].set_xticks(range(4), KS); ax[0].set_xlabel("questions per call (k)"); ax[0].set_ylabel("normalized accuracy"); ax[0].legend(fontsize=7); ax[0].grid(alpha=.3); ax[0].set_title("Step questions, baseline-normalized"); ax[0].set_ylim(-0.1, 0.8)
+ax[0].axhline(0, color="k", lw=.8, ls="--"); ax[0].set_xticks(range(4), KS); ax[0].set_xlabel("questions per call (k)"); ax[0].set_ylabel("normalized accuracy"); ax[0].legend(fontsize=7); ax[0].grid(alpha=.3); ax[0].set_title("Step questions, baseline-normalized"); ax[0].set_ylim(-0.4, 0.8)
 names = ["batch size", "distance from end"]
 b0, bs = coef(np.ones(len(y), bool), N3[:2], "all (2 regressors)")
 for i, nm in enumerate(names):
     ax[1].errorbar([i], [100 * b0[i]], [[100 * (b0[i] - np.percentile(bs[:, i], 2.5))], [100 * (np.percentile(bs[:, i], 97.5) - b0[i])]], marker="o", capsize=4)
 ax[1].axhline(0, color="k", lw=.8, ls="--"); ax[1].set_xticks(range(2), ["per doubling of\nbatch size", "per doubling of distance\nfrom the end"]); ax[1].set_xlim(-.6, 1.6)
-ax[1].set_ylabel("accuracy change (pt)"); ax[1].grid(alpha=.3); ax[1].set_title("Batch size and position, separated")
-plt.tight_layout(); plt.savefig(OUT / "q7_separate.png", dpi=130); plt.close()
+ax[1].set_ylabel("accuracy change (pt)"); ax[1].set_ylim(-3, 2.5); ax[1].grid(alpha=.3); ax[1].set_title("Batch size and position, separated")
+save_panels(fig, ax, OUT / f"{MODEL}_q7_separate")

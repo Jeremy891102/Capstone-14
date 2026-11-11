@@ -2,15 +2,18 @@
 Reads rows.json.gz (one row per question x condition) and prints the numbers used in docs/cc4d/new_experiment/q7.zh.md;
 writes docs/cc4d/new_experiment/figs/q7_*.png.   python results/cc4d_k32.py
 Row: order, k, report, field, answer_type, correct, is_abstention_q, said_not_visible, from_end, batch_len, no_mistake(-1 n/a)."""
-import gzip, json, pathlib, re
+import gzip, json, os, pathlib, re
 import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from cc4d_k32_panels import save_panels
 
 H = pathlib.Path(__file__).parent
-OUT = H.parent / "docs/cc4d/new_experiment/figs"
-rows = json.load(gzip.open(H / "cc4d_k32_v1_gemini4_argon_20261109/rows.json.gz", "rt"))
+OUT = H.parent / "docs/cc4d/new_experiment/figs/parts"; OUT.mkdir(exist_ok=True, parents=True)
+MODEL = os.environ.get("K32_MODEL", "argon")  # argon | qwen; cc4d_k32_figs.py runs both and stitches the figures
+RUNS = {"argon": "cc4d_k32_v1_gemini4_argon_20261109", "qwen": "cc4d_k32_v1_qwen3vl32b_20261110"}[MODEL]
+rows = json.load(gzip.open(H / RUNS / "rows.json.gz", "rt"))
 cols = ["o", "k", "rep", "f", "a", "ok", "ab", "nv", "end", "n", "nm"]
 D = {c: np.array([r[i] for r in rows]) for i, c in enumerate(cols)}
 reps = np.unique(D["rep"]); ridx = np.searchsorted(reps, D["rep"])
@@ -104,12 +107,12 @@ for o in ("fwd", "rev"):
     v = np.array([acc[o, k] for k in KS]) * 100
     ax[0].errorbar(range(4), v[:, 0], [v[:, 0] - v[:, 1], v[:, 2] - v[:, 0]], marker="o", capsize=3, label={"fwd": "forward", "rev": "reversed"}[o], color=C[o])
 ax[0].set_xticks(range(4), ["8", "16", "32", "all"]); ax[0].set_xlabel("questions per call (k)"); ax[0].set_ylabel("accuracy, normal questions (%)")
-ax[0].set_ylim(50, 70); ax[0].legend(); ax[0].grid(alpha=.3); ax[0].set_title("Overall accuracy by batch size")
+ax[0].set_ylim(30, 70); ax[0].legend(); ax[0].grid(alpha=.3); ax[0].set_title("Overall accuracy by batch size")
 for v, lab in (("bool", "bool"), ("multi_choice", "multi-choice"), ("seconds", "seconds"), ("single_choice", "single-choice")):
     ax[1].plot(range(4), [100 * stat(norm & (D["a"] == v) & (D["k"] == k), ok)[0] for k in KS], marker="o", label=lab)
 ax[1].set_xticks(range(4), ["8", "16", "32", "all"]); ax[1].set_xlabel("questions per call (k)"); ax[1].set_ylabel("accuracy (%)")
-ax[1].legend(fontsize=8); ax[1].grid(alpha=.3); ax[1].set_title("By answer type (both orders)")
-plt.tight_layout(); plt.savefig(OUT / "q7_accuracy.png", dpi=130); plt.close()
+ax[1].set_ylim(0, 110); ax[1].set_yticks(range(0, 101, 20)); ax[1].legend(fontsize=7, loc="upper center", ncol=4); ax[1].grid(alpha=.3); ax[1].set_title("By answer type (both orders)")
+save_panels(fig, ax, OUT / f"{MODEL}_q7_accuracy")
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 for o in ("fwd", "rev"):
@@ -121,17 +124,17 @@ for o in ("fwd", "rev"):
     ax[1].plot(range(4), [100 * fa[o, k][0] for k in KS], marker="o", color=C[o], label={"fwd": "forward", "rev": "reversed"}[o])
 ax[1].set_xticks(range(4), ["8", "16", "32", "all"]); ax[1].set_xlabel("questions per call (k)"); ax[1].set_ylabel("answered not_visible (%)")
 ax[1].set_ylim(0, 5); ax[1].legend(); ax[1].grid(alpha=.3); ax[1].set_title("False abstention on steps that were done")
-plt.tight_layout(); plt.savefig(OUT / "q7_abstention.png", dpi=130); plt.close()
+save_panels(fig, ax, OUT / f"{MODEL}_q7_abstention")
 
 fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
 for k, c in zip(KS, ["#999999", "#6baed6", "#2171b5", "#08306b"]):
     pts = [(lo, pos[k, lo]) for lo, _ in edges if (k, lo) in pos]
     ax[0].plot([i for i, (lo, _) in enumerate(edges) if (k, lo) in pos], [100 * p[0] for _, p in pts], marker="o", color=c, label=f"k = {k}")
 ax[0].set_xticks(range(5), [f"{a}-{b}" if b < 99 else f"{a}+" for a, b in edges]); ax[0].set_xlabel("questions after it in the call")
-ax[0].set_ylabel("accuracy (%)"); ax[0].legend(fontsize=8); ax[0].grid(alpha=.3); ax[0].set_title("Accuracy by distance from the end of the call")
+ax[0].set_ylabel("accuracy (%)"); ax[0].set_ylim(0, 100); ax[0].legend(fontsize=8, loc="lower left"); ax[0].grid(alpha=.3); ax[0].set_title("Accuracy by distance from the end of the call")
 labs = ["no mistake", "has mistakes"]
 for j, lab in enumerate(labs):
     ax[1].bar(np.arange(4) + (j - .5) * .38, [100 * split[lab, k][0] for k in KS], .38, label=lab)
 ax[1].set_xticks(range(4), ["8", "16", "32", "all"]); ax[1].set_xlabel("questions per call (k)"); ax[1].set_ylabel("error_types accuracy (%)")
-ax[1].legend(fontsize=8); ax[1].grid(axis="y", alpha=.3); ax[1].set_ylim(0, 85); ax[1].set_title("'What mistakes?' accuracy")
-plt.tight_layout(); plt.savefig(OUT / "q7_position_error.png", dpi=130); plt.close()
+ax[1].legend(fontsize=8); ax[1].grid(axis="y", alpha=.3); ax[1].set_ylim(0, 100); ax[1].set_title("'What mistakes?' accuracy")
+save_panels(fig, ax, OUT / f"{MODEL}_q7_position_error")

@@ -35,7 +35,8 @@ def main():
     ap.add_argument("--exp", type=Path, default=Path("experiments/cc4d_k32"))
     ap.add_argument("--prompts", type=Path, default=Path("experiments/cc4d_answer_types/prompts"))
     ap.add_argument("--video-root", required=True)
-    ap.add_argument("--model", default="gemini-4-argon")
+    ap.add_argument("--provider", choices=["gemini", "vllm"], default="gemini")
+    ap.add_argument("--model", default=None, help="default: gemini-4-argon, or qwen3-vl-32b for vllm")
     ap.add_argument("--pilot", nargs="*", default=[])
     args = ap.parse_args()
 
@@ -97,11 +98,14 @@ def main():
 
     prompts = args.exp / "prompts"
     shutil.copytree(args.prompts, prompts, dirs_exist_ok=True)
+    vllm = args.provider == "vllm"  # Qwen on a local vLLM server, same video settings as the earlier Qwen runs
     cfg0 = {
         "prompt": {"system": "../prompts/system.txt", "user": "../prompts/user.txt", "context_keys": ["task_name", "recipe", "error_definitions"]},
-        "provider": {
+        "provider": {"name": "vllm", "model": args.model or "qwen3-vl-32b", "vllm": {"base_url": "http://localhost:8000/v1", "frame_fps": 2.0, "video_token_budget": 230000}}
+        if vllm
+        else {
             "name": "gemini",
-            "model": args.model,
+            "model": args.model or "gemini-4-argon",
             "gemini": {
                 "backend": "vertex_express",
                 "api_key_env": "GEMINI_API_KEY",
@@ -112,9 +116,9 @@ def main():
             },
         },
         "video": {"use_time_range": True, "fps": 2.0},
-        "generation": {"temperature": 0.0, "max_output_tokens": 8192, "response_format": "json"},
-        "execution": {"concurrency": 4, "max_attempts": 3, "timeout_s": 600},
-        "pricing": {
+        "generation": {"temperature": 0.0, "max_output_tokens": 4096 if vllm else 8192, "response_format": "json"},
+        "execution": {"concurrency": 2, "max_attempts": 3, "timeout_s": 900} if vllm else {"concurrency": 4, "max_attempts": 3, "timeout_s": 600},
+        "pricing": None if vllm else {
             "currency": "USD", "input_per_million": 2.0, "cached_input_per_million": 0.1, "output_per_million": 10.0,
             "source": "third-party listings (litellm, dvarahq), introductory Vertex rate to 2026-11-30; not Google's page",
         },
