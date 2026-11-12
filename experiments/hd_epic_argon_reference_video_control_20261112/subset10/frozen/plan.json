@@ -1,0 +1,82 @@
+{
+  "status": "completed_640_no_video_calls",
+  "scope": "Argon HD-EPIC target-only vs target+7refs, video ablation; no change to original baseline",
+  "new_conditions": [
+    "no_video_single",
+    "no_video_context_7"
+  ],
+  "existing_conditions": [
+    "with_video_single",
+    "with_video_context_7"
+  ],
+  "pilot": {
+    "reports": [
+      "hdepic-dense-007",
+      "hdepic-dense-009",
+      "hdepic-dense-011",
+      "hdepic-dense-014",
+      "hdepic-dense-023",
+      "hdepic-dense-025",
+      "hdepic-dense-054",
+      "hdepic-dense-065"
+    ],
+    "targets": 64,
+    "new_calls": 128,
+    "seed": 20261111,
+    "role": "feasibility and cost pilot, not definitive significance test"
+  },
+  "full_subset": {
+    "reports": [
+      "hdepic-dense-014",
+      "hdepic-dense-022",
+      "hdepic-dense-023",
+      "hdepic-dense-065",
+      "hdepic-dense-009",
+      "hdepic-dense-032",
+      "hdepic-dense-054",
+      "hdepic-dense-007",
+      "hdepic-dense-011",
+      "hdepic-dense-025"
+    ],
+    "targets": 320,
+    "new_calls_total_including_pilot": 640,
+    "after_successful_pilot_remaining": 512
+  },
+  "primary_metric": "D = (accuracy(video,context7)-accuracy(video,single)) - (accuracy(no_video,context7)-accuracy(no_video,single))",
+  "inference": "target-weighted paired difference; recording bootstrap; report uncertainty and correct->wrong/wrong->correct",
+  "stopping": [
+    "schema/provider failure: preserve output, inspect before expanding",
+    "actual model revision or settings mismatch: stop before comparative claims",
+    "no actual billed balance/current prices verified: no automatic paid execution"
+  ],
+  "cost": {
+    "provider_token_count": "not requested",
+    "current_prices_or_balance_verified": false,
+    "dollar_estimate": null,
+    "next": "use pilot usage to estimate 512 remaining calls; include reasoning once and reserve output cap; historical video run costs do not estimate text-only behavior"
+  },
+  "historical_control_limitations": [
+    "Video/no-video runs are not contemporaneous; verify modelVersion and consider 16 separately approved contemporaneous video anchor calls (one target per pilot video, two conditions).",
+    "Target-only and context protocols differ in instruction framing/position; D refers to the complete protocol, not isolated semantic context.",
+    "Old full_requests source request has stale model field; planned runtime model is explicitly pinned to gemini-4-argon from actual historical native run, not copied from source field.",
+    "No-video prompt still refers to video; preserve it for primary ablation and describe as removed-evidence control.",
+    "Selected 10 videos include diagnostic choices; exploratory, not representative random sample."
+  ],
+  "files_sha256": {
+    "full_requests.jsonl": "1c77c808858e25bc397e7a4d3c7e101d043da765234acb77a5483d166b0d11d5",
+    "requests.jsonl": "035300f42097af703e9bb60e01d9b444dcff292545a1315ebe606218c5e85afa",
+    "design.json": "0d12602724948a32a35ac8f706f019c4a42a100f362c1f64a1f8fd57e52ab731",
+    "ground_truth.jsonl": "a5b87d3b8ce525cc7cf8f1d3030f000f4a7e6c87bd249ef09519eb4a6ba16688",
+    "pilot_requests.jsonl": "1b149b5d101d6600b7042215e03f097b79caf4eaf0eacb21c75219629efaeeee",
+    "evaluation_only.jsonl": "108930006e7d114e27f895fc72b7646cb60cdf27a88839b8b277cda731f91657"
+  },
+  "execution_update_20261112": {
+    "authorization": "User approved pilot followed by remaining calls if checks pass",
+    "status_file": "execution_20261112/status.json",
+    "pilot_gate": "execution_20261112/pilot_gate.json",
+    "historical_preparation_status": "Prior prepared_not_executed status and execution restriction superseded by this user instruction; input files unchanged",
+    "status": "completed",
+    "result": "execution_20261112/full_analysis/summary.json",
+    "attempts": "640accepted +1archivedtimeout; failed billingunknown"
+  }
+}
