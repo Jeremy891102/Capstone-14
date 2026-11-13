@@ -1,0 +1,53 @@
+{
+  "status": "failed",
+  "request": {
+    "call_id": "hdepic-dense-056::novideo-single=loc_1645",
+    "report_id": "hdepic-dense-056",
+    "field_id": "loc_1645",
+    "condition": "single",
+    "pilot": false,
+    "model": "gemini-4-argon",
+    "source_call_id": "hdepic-dense-056::field=loc_1645",
+    "source_row_sha256": "fcfe2981588541e668c3ae6d8cfa0b4e6c795a3a80ec1dc0940821b881787092",
+    "source_media_sha256": "bb6048f7a2e320afa2a3b4d72eb6e9fcd6f1e5ac3099884b459b51d2d9590bf0",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P04)\n\nAnswer all 1 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_1645]\nQuestion: When did the action <place ladle> happen in this clip? (segment: 0:01:24.339 - 0:06:42.359 of this clip)\nOptions:\nA. this clip from 0:05:01.479 to 0:05:01.879\nB. this clip from 0:04:33.410 to 0:04:35.979\nC. this clip from 0:03:16.780 to 0:03:18.650\nD. this clip from 0:04:36.460 to 0:04:36.830\nE. this clip from 0:03:21.979 to 0:03:23.209\n\nReturn a JSON object with exactly these keys (loc_1645) and one option letter as each value:\n{\n  \"loc_1645\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "46e61c424888fd29d3f22892ed866eaaebcfb6dd6d59104a072fc8d2c7227a89"
+  },
+  "input_sha256": "46e61c424888fd29d3f22892ed866eaaebcfb6dd6d59104a072fc8d2c7227a89",
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "started_unix": 1794526451.398796,
+  "runner_sha256": "d6c87ea626f964b688f8ee623209ffb8f00d8d003cabe6c7e6bf1a5cd17ab4dd",
+  "api_latency_s": 180.02452433295548,
+  "error_type": "TimeoutError",
+  "error": "The read operation timed out",
+  "billing": "unknown unless usage exists; no automatic retry",
+  "finished_unix": 1794528726.082944
+}
