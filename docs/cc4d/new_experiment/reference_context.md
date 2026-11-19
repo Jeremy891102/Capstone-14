@@ -67,3 +67,18 @@ Same 1,528 targets and reference groups. No question allows `not_visible` and th
 - **Qwen with video is worse than without:** with the target alone, 31.8% < 36.4% (multi-choice 33.1 < 44.1). With video it says "no mistake" less often (162/510) and names specific mistakes instead (for example C on 126 questions), but is mostly wrong, so it loses to the always-"no mistake" strategy. This agrees with the no-video experiment: Qwen gains little from the video.
 - Adding references also changes the share of fixed answers: without video, bool "done correctly" 423 → 302 and multi-choice "no mistake" 474 → 438. Accuracy changes come mainly from this, not from new information.
 - Accuracies of the two rounds cannot be subtracted from each other (the difference is itself the effect of allowing abstention).
+
+## Comparison with HD-EPIC
+
+| | HD-EPIC (teammate, 73 videos / 2,336 targets, Argon) | CC4D (Argon, 64 videos / 1,528 targets) |
+| --- | --- | --- |
+| With video: alone → +refs | 60.02 → 67.29 | 61.3 → 59.0 |
+| Without video: alone → +refs | 26.54 → 34.97 | 34.4 → 31.1 |
+| Context gain with video | +7.28 pt | −2.3 pt |
+| Context gain without video | +8.43 pt | −3.3 pt |
+| D | −1.16 [−4.20, +1.80] | +1.0 [−2.3, 4.3] |
+| Video gain (alone / +refs) | +33.5 / +32.3 pt | +26.9 / +27.9 pt |
+
+(HD-EPIC numbers are from the teammate's full 73-video result; D and its interval are as they reported. Their earlier 10-video / 320-target subset gave D = −0.3 [−6.6, 5.9], same direction.)
+
+D is close to 0 with an interval that crosses 0 in both datasets: neither shows evidence that reference questions help more with video. The difference is in the references themselves: on HD-EPIC they help with and without video (about +7 to +8 pt), so the batch gain from k = 1 to 8 cannot be attributed solely to better use of the video; on CC4D they do not help. The teammate also notes that this experiment cannot tell whether the reference text provides useful context or leaks answer cues. HD-EPIC has a single question type (5-way multiple choice), CC4D has three, with different answer formats and different amounts of cue in the question text, so the difference cannot be attributed to a single mechanism.
