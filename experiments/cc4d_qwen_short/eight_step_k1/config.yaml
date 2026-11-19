@@ -1,0 +1,129 @@
+name: cc4d_eight_step_k1_short
+description: CC4D answer-type experiment, group eight_step, 1 per call. Videos at
+  full 352p under the 145k budget only.
+data:
+  benchmark: ../../../data/cc4d_answer_types_v1/eight_step
+  require_local_videos: true
+  video_root: /home/nyu-data/datasets/captaincook4d/gopro_360p
+  report_ids:
+  - cc4d-1_32__dur_multi_8step
+  - cc4d-1_32__dur_int_8step
+  - cc4d-1_32__loc_multi_8step
+  - cc4d-1_32__loc_int_8step
+  - cc4d-1_37__dur_multi_8step
+  - cc4d-1_37__dur_int_8step
+  - cc4d-1_37__loc_multi_8step
+  - cc4d-1_37__loc_int_8step
+  - cc4d-1_43__dur_multi_8step
+  - cc4d-1_43__dur_int_8step
+  - cc4d-1_43__loc_multi_8step
+  - cc4d-1_43__loc_int_8step
+  - cc4d-4_35__dur_multi_8step
+  - cc4d-4_35__dur_int_8step
+  - cc4d-4_35__loc_multi_8step
+  - cc4d-4_35__loc_int_8step
+  - cc4d-5_28__dur_multi_8step
+  - cc4d-5_28__dur_int_8step
+  - cc4d-5_28__loc_multi_8step
+  - cc4d-5_28__loc_int_8step
+  - cc4d-7_38__dur_multi_8step
+  - cc4d-7_38__dur_int_8step
+  - cc4d-7_38__loc_multi_8step
+  - cc4d-7_38__loc_int_8step
+  - cc4d-10_47__dur_multi_8step
+  - cc4d-10_47__dur_int_8step
+  - cc4d-10_47__loc_multi_8step
+  - cc4d-10_47__loc_int_8step
+  - cc4d-10_50__dur_multi_8step
+  - cc4d-10_50__dur_int_8step
+  - cc4d-10_50__loc_multi_8step
+  - cc4d-10_50__loc_int_8step
+  - cc4d-12_48__dur_multi_8step
+  - cc4d-12_48__dur_int_8step
+  - cc4d-12_48__loc_multi_8step
+  - cc4d-12_48__loc_int_8step
+  - cc4d-12_51__dur_multi_8step
+  - cc4d-12_51__dur_int_8step
+  - cc4d-12_51__loc_multi_8step
+  - cc4d-12_51__loc_int_8step
+  - cc4d-15_30__dur_multi_8step
+  - cc4d-15_30__dur_int_8step
+  - cc4d-15_30__loc_multi_8step
+  - cc4d-15_30__loc_int_8step
+  - cc4d-15_33__dur_multi_8step
+  - cc4d-15_33__dur_int_8step
+  - cc4d-15_33__loc_multi_8step
+  - cc4d-15_33__loc_int_8step
+  - cc4d-15_37__dur_multi_8step
+  - cc4d-15_37__dur_int_8step
+  - cc4d-15_37__loc_multi_8step
+  - cc4d-15_37__loc_int_8step
+  - cc4d-17_40__dur_multi_8step
+  - cc4d-17_40__dur_int_8step
+  - cc4d-17_40__loc_multi_8step
+  - cc4d-17_40__loc_int_8step
+  - cc4d-20_39__dur_multi_8step
+  - cc4d-20_39__dur_int_8step
+  - cc4d-20_39__loc_multi_8step
+  - cc4d-20_39__loc_int_8step
+  - cc4d-21_32__dur_multi_8step
+  - cc4d-21_32__dur_int_8step
+  - cc4d-21_32__loc_multi_8step
+  - cc4d-21_32__loc_int_8step
+  - cc4d-22_26__dur_multi_8step
+  - cc4d-22_26__dur_int_8step
+  - cc4d-22_26__loc_multi_8step
+  - cc4d-22_26__loc_int_8step
+  - cc4d-22_30__dur_multi_8step
+  - cc4d-22_30__dur_int_8step
+  - cc4d-22_30__loc_multi_8step
+  - cc4d-22_30__loc_int_8step
+  - cc4d-22_37__dur_multi_8step
+  - cc4d-22_37__dur_int_8step
+  - cc4d-22_37__loc_multi_8step
+  - cc4d-22_37__loc_int_8step
+  - cc4d-22_41__dur_multi_8step
+  - cc4d-22_41__dur_int_8step
+  - cc4d-22_41__loc_multi_8step
+  - cc4d-22_41__loc_int_8step
+  - cc4d-28_29__dur_multi_8step
+  - cc4d-28_29__dur_int_8step
+  - cc4d-28_29__loc_multi_8step
+  - cc4d-28_29__loc_int_8step
+  - cc4d-28_38__dur_multi_8step
+  - cc4d-28_38__dur_int_8step
+  - cc4d-28_38__loc_multi_8step
+  - cc4d-28_38__loc_int_8step
+  - cc4d-29_28__dur_multi_8step
+  - cc4d-29_28__dur_int_8step
+  - cc4d-29_28__loc_multi_8step
+  - cc4d-29_28__loc_int_8step
+method:
+  name: batched
+  batch_size: 1
+prompt:
+  system: ../../cc4d_qwen/prompts/system.txt
+  user: ../../cc4d_qwen/prompts/user.txt
+  context_keys:
+  - task_name
+  - recipe
+  - error_definitions
+provider:
+  name: vllm
+  model: qwen3-vl-32b
+  vllm:
+    base_url: http://localhost:8000/v1
+    frame_fps: 2.0
+    video_token_budget: 145000
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 2
+  max_attempts: 3
+  timeout_s: 900
+pricing: null

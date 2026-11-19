@@ -1,0 +1,166 @@
+facts per model/k:
+ k              1     4     8
+model                       
+Argon       2560  2560  2560
+Flash-Lite  2560  2560  2560
+Qwen        2560  2560  2560
+
+=== 1. accuracy ~ log2(k), each model, 5 common cells ===
+
+## Flash-Lite  (n=7680)
+  lk                                     coef +0.010 [-0.014, +0.033]  p=0.419  OR=1.01
+
+## Qwen  (n=7680)
+  lk                                     coef -0.064 [-0.091, -0.037]  p=0.000  OR=0.94
+
+## Argon  (n=7680)
+  lk                                     coef +0.008 [-0.025, +0.041]  p=0.621  OR=1.01
+
+--- 10 cells (Flash-Lite, Qwen) ---
+
+## Flash-Lite  (n=16896)
+  lk                                     coef +0.017 [-0.002, +0.036]  p=0.080  OR=1.02
+
+## Qwen  (n=16896)
+  lk                                     coef -0.031 [-0.047, -0.014]  p=0.000  OR=0.97
+
+--- model difference in slope (5 common cells, pooled) ---
+
+## lk x model  (n=23040)
+  lk                                     coef +0.009 [-0.026, +0.043]  p=0.621  OR=1.01
+  lk:C(model, Treatment('Argon'))[T.Flash-Lite] coef +0.002 [-0.040, +0.044]  p=0.935  OR=1.00
+  lk:C(model, Treatment('Argon'))[T.Qwen] coef -0.078 [-0.126, -0.031]  p=0.001  OR=0.92
+
+=== 2. content x k (bool + single only: the types present in all contents) ===
+
+## Flash-Lite: k effect depends on content?  (n=9216)
+  lk                                     coef -0.041 [-0.074, -0.008]  p=0.014  OR=0.96
+  lk:C(content, Treatment('err'))[T.dur] coef +0.010 [-0.030, +0.050]  p=0.637  OR=1.01
+  lk:C(content, Treatment('err'))[T.loc] coef +0.074 [+0.027, +0.122]  p=0.002  OR=1.08
+  AME per doubling (pt) by content:
+ content
+dur   -0.77
+err   -1.01
+loc    0.78
+
+## Qwen: k effect depends on content?  (n=9216)
+  lk                                     coef -0.029 [-0.068, +0.010]  p=0.144  OR=0.97
+  lk:C(content, Treatment('err'))[T.dur] coef -0.013 [-0.071, +0.044]  p=0.649  OR=0.99
+  lk:C(content, Treatment('err'))[T.loc] coef -0.118 [-0.193, -0.044]  p=0.002  OR=0.89
+  AME per doubling (pt) by content:
+ content
+dur   -1.06
+err   -0.73
+loc   -2.48
+
+## Argon (dur vs loc only)  (n=7680)
+  lk                                     coef -0.013 [-0.057, +0.030]  p=0.547  OR=0.99
+  lk:C(content, Treatment('dur'))[T.loc] coef +0.046 [-0.012, +0.105]  p=0.119  OR=1.05
+  AME by content:
+ content
+dur   -0.19
+loc    0.30
+
+=== 3. type x k (dur + loc rows: bool, single, seconds) ===
+
+## Flash-Lite: k effect depends on type?  (n=9216)
+  lk                                     coef +0.012 [-0.020, +0.043]  p=0.464  OR=1.01
+  lk:C(type, Treatment('bool'))[T.seconds] coef +0.019 [-0.042, +0.081]  p=0.537  OR=1.02
+  lk:C(type, Treatment('bool'))[T.single] coef -0.024 [-0.081, +0.033]  p=0.409  OR=0.98
+  AME by type:
+ type
+bool       0.29
+seconds    0.53
+single    -0.27
+
+## Qwen: k effect depends on type?  (n=9216)
+  lk                                     coef -0.090 [-0.140, -0.039]  p=0.001  OR=0.91
+  lk:C(type, Treatment('bool'))[T.seconds] coef +0.055 [-0.017, +0.127]  p=0.132  OR=1.06
+  lk:C(type, Treatment('bool'))[T.single] coef +0.005 [-0.054, +0.063]  p=0.872  OR=1.00
+  AME by type:
+ type
+bool      -1.82
+seconds   -0.59
+single    -1.84
+
+## Argon: k effect depends on type?  (n=7680)
+  lk                                     coef -0.015 [-0.072, +0.042]  p=0.612  OR=0.99
+  lk:C(type, Treatment('bool'))[T.seconds] coef +0.043 [-0.036, +0.121]  p=0.286  OR=1.04
+  lk:C(type, Treatment('bool'))[T.single] coef +0.022 [-0.046, +0.091]  p=0.523  OR=1.02
+  AME by type:
+ type
+bool      -0.10
+seconds    0.55
+single     0.08
+
+--- error row, Qwen / Flash-Lite: bool, single, multi, int ---
+
+## Flash-Lite  (n=7680)
+  lk                                     coef -0.029 [-0.072, +0.014]  p=0.187  OR=0.97
+  lk:C(type, Treatment('bool'))[T.int]   coef +0.204 [+0.128, +0.279]  p=0.000  OR=1.23
+  lk:C(type, Treatment('bool'))[T.multi] coef +0.039 [-0.037, +0.115]  p=0.312  OR=1.04
+  lk:C(type, Treatment('bool'))[T.open_text] coef +0.065 [-0.009, +0.138]  p=0.086  OR=1.07
+  lk:C(type, Treatment('bool'))[T.single] coef -0.023 [-0.086, +0.041]  p=0.480  OR=0.98
+  AME by type:
+ type
+bool        -0.72
+int          4.20
+multi        0.25
+open_text    0.86
+single      -1.30
+
+## Qwen  (n=7680)
+  lk                                     coef -0.041 [-0.090, +0.007]  p=0.096  OR=0.96
+  lk:C(type, Treatment('bool'))[T.int]   coef +0.018 [-0.033, +0.069]  p=0.484  OR=1.02
+  lk:C(type, Treatment('bool'))[T.multi] coef +0.055 [-0.017, +0.127]  p=0.137  OR=1.06
+  lk:C(type, Treatment('bool'))[T.open_text] coef +0.120 [+0.066, +0.174]  p=0.000  OR=1.13
+  lk:C(type, Treatment('bool'))[T.single] coef +0.024 [-0.040, +0.087]  p=0.461  OR=1.02
+  AME by type:
+ type
+bool        -1.02
+int         -0.57
+multi        0.33
+open_text    1.92
+single      -0.43
+
+=== 4a. E5: k up to 16, per model, by content (bool/single/seconds) ===
+
+## Flash-Lite dur  (n=8448)
+  lk                                     coef -0.059 [-0.083, -0.035]  p=0.000  OR=0.94
+  lk:C(type, Treatment('bool'))[T.seconds] coef +0.053 [-0.025, +0.131]  p=0.181  OR=1.05
+  lk:C(type, Treatment('bool'))[T.single] coef +0.086 [+0.036, +0.135]  p=0.001  OR=1.09
+  AME by type:
+ type
+bool      -1.48
+seconds   -0.08
+single     0.56
+
+## Flash-Lite loc  (n=7680)
+  lk                                     coef +0.040 [+0.006, +0.073]  p=0.020  OR=1.04
+  lk:C(type, Treatment('bool'))[T.seconds] coef -0.036 [-0.084, +0.012]  p=0.140  OR=0.96
+  lk:C(type, Treatment('bool'))[T.single] coef +0.069 [+0.001, +0.137]  p=0.047  OR=1.07
+  AME by type:
+ type
+bool       1.00
+seconds    0.07
+single     2.17
+
+## Qwen dur  (n=8448)
+  lk                                     coef -0.028 [-0.060, +0.003]  p=0.075  OR=0.97
+  lk:C(type, Treatment('bool'))[T.seconds] coef -0.130 [-0.203, -0.056]  p=0.001  OR=0.88
+  lk:C(type, Treatment('bool'))[T.single] coef +0.006 [-0.032, +0.045]  p=0.750  OR=1.01
+  AME by type:
+ type
+bool      -0.70
+seconds   -1.95
+single    -0.51
+
+## Qwen loc  (n=7680)
+  lk                                     coef -0.132 [-0.195, -0.068]  p=0.000  OR=0.88
+  lk:C(type, Treatment('bool'))[T.seconds] coef +0.159 [+0.082, +0.236]  p=0.000  OR=1.17
+  lk:C(type, Treatment('bool'))[T.single] coef +0.000 [-0.084, +0.084]  p=0.999  OR=1.00
+  AME by type:
+ type
+bool      -2.69
+seconds    0.56
+single    -2.30

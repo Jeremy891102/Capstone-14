@@ -1,0 +1,56 @@
+shift groups (E4 position vs E3 position): {('fwd', 'earlier'): 5632, ('fwd', 'same'): 5632, ('rev', 'later'): 5632, ('rev', 'same'): 5632}
+
+=== 4.1 does mixing change accuracy? position-matched pairs only (clean test), pt [95% CI] ===
+Flash-Lite fwd: pooled +1.7 [+0.4, +3.2] (n=2816, right->wrong 144, wrong->right 193)
+Flash-Lite rev: pooled +2.2 [+0.7, +3.6] (n=2816, right->wrong 154, wrong->right 215)
+Flash-Lite fwd+rev: pooled +2.0 [+1.0, +3.1] (n=5632, right->wrong 298, wrong->right 408)
+Qwen       fwd: pooled +2.6 [+1.6, +3.7] (n=2816, right->wrong 33, wrong->right 107)
+Qwen       rev: pooled +2.1 [+0.7, +3.4] (n=2816, right->wrong 163, wrong->right 223)
+Qwen       fwd+rev: pooled +2.4 [+1.4, +3.3] (n=5632, right->wrong 196, wrong->right 330)
+
+per cell (position-matched, forward + reversed pooled):
+Flash-Lite
+  dur bool       +3.5 [+1.2, +6.2] (n=512, right->wrong 7, wrong->right 25)
+  dur seconds    +4.9 [+1.4, +8.4] (n=512, right->wrong 29, wrong->right 54)
+  dur single     -2.3 [-5.7, +1.2] (n=512, right->wrong 49, wrong->right 37)
+  err bool       +2.5 [+0.0, +5.1] (n=512, right->wrong 33, wrong->right 46)
+  err int        +1.4 [-1.8, +4.7] (n=512, right->wrong 25, wrong->right 32)
+  err multi      +2.0 [-1.0, +4.9] (n=512, right->wrong 17, wrong->right 27)
+  err open_text  +2.1 [-0.8, +5.3] (n=512, right->wrong 26, wrong->right 37)
+  err single     +0.8 [-1.6, +3.1] (n=512, right->wrong 22, wrong->right 26)
+  loc bool       +2.5 [+0.2, +4.9] (n=512, right->wrong 16, wrong->right 29)
+  loc seconds    +3.3 [-0.4, +7.6] (n=512, right->wrong 26, wrong->right 43)
+  loc single     +0.8 [-3.7, +4.9] (n=512, right->wrong 48, wrong->right 52)
+Qwen
+  dur bool       +5.1 [+1.8, +8.8] (n=512, right->wrong 13, wrong->right 39)
+  dur seconds    +2.1 [-0.4, +4.7] (n=512, right->wrong 15, wrong->right 26)
+  dur single     -0.2 [-2.7, +2.3] (n=512, right->wrong 18, wrong->right 17)
+  err bool       +5.7 [+2.9, +8.6] (n=512, right->wrong 14, wrong->right 43)
+  err int        -0.8 [-2.9, +1.4] (n=512, right->wrong 20, wrong->right 16)
+  err multi      -0.4 [-2.9, +2.3] (n=512, right->wrong 23, wrong->right 21)
+  err open_text  +0.4 [-1.4, +2.1] (n=512, right->wrong 8, wrong->right 10)
+  err single     -0.6 [-2.5, +1.4] (n=512, right->wrong 15, wrong->right 12)
+  loc bool       +6.1 [+1.9, +10.4] (n=512, right->wrong 32, wrong->right 63)
+  loc seconds    +3.1 [+0.0, +6.2] (n=512, right->wrong 15, wrong->right 31)
+  loc single     +5.7 [+2.7, +8.6] (n=512, right->wrong 23, wrong->right 52)
+
+=== 4.2 does the mixing effect depend on the target type / content? (logit on stacked E3 + E4, position-matched pairs) ===
+Flash-Lite
+  Wald mixed x cell (does the effect differ by cell?): chi2=16.46 df=10 p=0.0872
+  pooled mixed coef +0.085 [+0.040, +0.130] p=0.000
+Qwen
+  Wald mixed x cell (does the effect differ by cell?): chi2=42.43 df=10 p=0.0000
+  pooled mixed coef +0.106 [+0.064, +0.148] p=0.000
+
+=== 4.3 mixing or position? mixed - single, by whether the target moved to an earlier / later / same position ===
+Flash-Lite fwd same     +1.7 [+0.4, +3.2] (n=2816, right->wrong 144, wrong->right 193)
+Flash-Lite fwd earlier  -0.2 [-1.7, +1.4] (n=2816, right->wrong 214, wrong->right 209)
+Flash-Lite rev same     +2.2 [+0.7, +3.6] (n=2816, right->wrong 154, wrong->right 215)
+Flash-Lite rev later    +1.0 [-0.7, +2.6] (n=2816, right->wrong 183, wrong->right 211)
+Qwen       fwd same     +2.6 [+1.6, +3.7] (n=2816, right->wrong 33, wrong->right 107)
+Qwen       fwd earlier  +0.2 [-1.2, +1.7] (n=2816, right->wrong 145, wrong->right 150)
+Qwen       rev same     +2.1 [+0.7, +3.4] (n=2816, right->wrong 163, wrong->right 223)
+Qwen       rev later    -4.1 [-5.8, -2.5] (n=2816, right->wrong 347, wrong->right 231)
+
+=== 4.4 do the models agree? (position-matched; logit y ~ mixed * model + cell) ===
+  Wald mixed x model: chi2=0.25 df=1 p=0.6194

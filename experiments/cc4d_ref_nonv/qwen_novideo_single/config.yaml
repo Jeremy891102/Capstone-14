@@ -1,0 +1,35 @@
+name: cc4d_ref_nonv_qwen_novideo_single
+description: 'CC4D reference-context control: qwen, novideo, single.'
+data:
+  benchmark: ../../../data/cc4d_ref_v1_nonv/single
+  require_local_videos: true
+  video_root: /home/nyu-data/datasets/captaincook4d/gopro_360p
+method:
+  name: whole_report
+prompt:
+  system: ../../cc4d_k32_qwen/prompts/system.txt
+  user: ../../cc4d_k32_qwen/prompts/user.txt
+  context_keys:
+  - task_name
+  - recipe
+  - error_definitions
+provider:
+  name: vllm
+  model: qwen3-vl-32b
+  vllm:
+    base_url: http://localhost:8000/v1
+    frame_fps: 2.0
+    video_token_budget: 230000
+video:
+  use_time_range: true
+  fps: 2.0
+  enabled: false
+generation:
+  temperature: 0.0
+  max_output_tokens: 4096
+  response_format: json
+execution:
+  concurrency: 2
+  max_attempts: 3
+  timeout_s: 900
+pricing: null

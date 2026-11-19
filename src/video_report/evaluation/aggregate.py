@@ -107,6 +107,12 @@ def aggregate(
     n_correct = outcomes["correct"]
     n_valid = sum(1 for s in scores if s.outcome in VALID_ANSWER_OUTCOMES)
 
+    by_type: dict[str, list[FieldScore]] = defaultdict(list)
+    for s in scores:
+        by_type[s.extra.get("answer_type", "single_choice")].append(s)
+    # fields that allow not_visible: the not-done items and the filmed steps asked next to them
+    not_done_items = [s for s in scores if s.extra.get("not_done_item") is True]
+    filmed = [s for s in scores if s.extra.get("not_done_item") is False]
     by_report: dict[str, list[FieldScore]] = defaultdict(list)
     for s in scores:
         by_report[s.report_id].append(s)
@@ -184,6 +190,19 @@ def aggregate(
         "warnings": warnings,
         "fields": {
             "field_accuracy": _rate(n_correct, n_fields),
+            "by_answer_type": {
+                t: _rate(sum(s.correct for s in g), len(g)) for t, g in sorted(by_type.items())
+            },
+            "not_done": {
+                "items": len(not_done_items),
+                "hallucination": _rate(
+                    sum(s.extra.get("hallucination", False) for s in not_done_items),
+                    len(not_done_items),
+                ),
+                "false_not_done": _rate(
+                    sum(s.extra.get("false_not_done", False) for s in filmed), len(filmed)
+                ),
+            },
             "valid_answer_rate": _rate(n_valid, n_fields),
             "outcomes": {
                 o: outcomes.get(o, 0)

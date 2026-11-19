@@ -1,0 +1,51 @@
+=== 1. accuracy on normal questions, by k and order (95% CI over recordings) ===
+fwd 8 61.5 [58.9, 64.1]
+fwd 16 61.6 [59.5, 63.6]
+fwd 32 59.8 [57.4, 62.2]
+fwd all 59.7 [57.1, 62.2]
+rev 8 61.2 [58.8, 63.3]
+rev 16 59.9 [57.4, 62.3]
+rev 32 60.6 [58.0, 63.1]
+rev all 59.8 [57.2, 62.2]
+both orders 8 61.3 [58.9, 63.5]
+both orders 16 60.8 [58.6, 62.8]
+both orders 32 60.2 [58.0, 62.3]
+both orders all 59.7 [57.4, 62.0]
+difference k=all minus k=8 (both orders): -1.8 pp [-3.4, -0.3]
+
+=== 2. by content / answer type (both orders) ===
+content     recording     k=8:80.3 [75.6, 85.2]  k=16:78.9 [74.4, 83.3]  k=32:77.4 [72.7, 82.2]  k=all:77.6 [73.4, 82.6]
+content     correct       k=8:68.9 [65.4, 72.1]  k=16:68.1 [64.9, 70.9]  k=32:69.3 [65.9, 72.4]  k=all:67.5 [64.6, 70.3]
+content     error_types   k=8:46.6 [43.0, 50.2]  k=16:45.4 [42.1, 48.6]  k=32:44.4 [40.8, 47.9]  k=all:44.9 [41.2, 48.3]
+content     duration      k=8:63.8 [59.1, 68.0]  k=16:64.2 [59.4, 68.7]  k=32:62.6 [58.3, 66.4]  k=all:62.3 [57.5, 66.8]
+answer type bool          k=8:68.8 [65.4, 72.1]  k=16:68.1 [65.1, 70.9]  k=32:69.1 [65.8, 72.1]  k=all:67.3 [64.3, 70.2]
+answer type int           k=8:73.4 [63.3, 82.8]  k=16:66.4 [55.5, 76.6]  k=32:71.1 [61.7, 80.5]  k=all:71.1 [61.7, 80.5]
+answer type seconds       k=8:65.8 [61.4, 69.7]  k=16:66.3 [61.9, 70.4]  k=32:64.3 [60.3, 67.8]  k=all:64.0 [59.5, 68.3]
+answer type multi_choice  k=8:46.6 [43.0, 50.2]  k=16:45.4 [42.1, 48.6]  k=32:44.4 [40.8, 47.9]  k=all:44.9 [41.2, 48.3]
+answer type single_choice k=8:85.1 [75.6, 93.9]  k=16:85.1 [75.5, 93.0]  k=32:84.0 [74.4, 92.6]  k=all:87.2 [78.7, 94.7]
+
+=== 3. error_types split: steps with no mistake vs with mistakes (both orders) ===
+no mistake n = 412 per order; k=8:65.3 [60.5, 69.4]  k=16:63.3 [58.9, 67.4]  k=32:63.7 [58.7, 68.0]  k=all:64.7 [58.6, 69.8]
+has mistakes n = 539 per order; k=8:32.3 [28.3, 36.3]  k=16:31.7 [27.5, 36.0]  k=32:29.7 [26.3, 33.1]  k=all:29.8 [26.1, 33.4]
+
+=== 4. abstention: steps not done (hallucination = answered anything but not_visible); false abstention on normal questions ===
+fwd 8 hallucination 88.0 [84.0, 91.3] | false abstention 0.2 [0.1, 0.4]
+fwd 16 hallucination 84.9 [80.4, 89.0] | false abstention 0.5 [0.2, 0.8]
+fwd 32 hallucination 75.9 [71.8, 79.6] | false abstention 0.4 [0.2, 0.7]
+fwd all hallucination 53.4 [42.4, 64.6] | false abstention 1.0 [0.5, 1.7]
+rev 8 hallucination 80.9 [76.3, 85.0] | false abstention 0.3 [0.1, 0.5]
+rev 16 hallucination 78.4 [74.9, 81.7] | false abstention 0.3 [0.1, 0.7]
+rev 32 hallucination 74.1 [65.7, 81.4] | false abstention 0.6 [0.3, 1.1]
+rev all hallucination 24.4 [16.0, 32.4] | false abstention 1.7 [1.0, 2.6]
+by answer type (both orders, hallucination):
+  bool k=8:97.7 [95.5, 99.5]  k=16:98.1 [96.2, 99.6]  k=32:90.7 [85.2, 95.5]  k=all:49.5 [40.0, 58.9]
+  multi_choice k=8:98.1 [96.4, 99.6]  k=16:98.6 [97.0, 100.0]  k=32:93.5 [88.9, 97.6]  k=all:50.9 [41.0, 60.5]
+  seconds k=8:57.4 [48.4, 65.2]  k=16:48.1 [39.5, 55.6]  k=32:40.7 [31.8, 49.5]  k=all:16.2 [11.3, 21.6]
+
+=== 5. position: accuracy by questions-from-end; slope per doubling with question fixed effects ===
+slope all questions  -0.51 pp [-0.92, -0.16] per doubling of distance from end
+slope correct        -0.23 pp [-0.88, +0.34] per doubling of distance from end
+slope error_types    -0.60 pp [-1.25, +0.00] per doubling of distance from end
+slope duration       -0.46 pp [-0.99, +0.02] per doubling of distance from end
+slope recording      -1.03 pp [-1.76, -0.38] per doubling of distance from end
+(the slope pools all k; batch size and position are not separated here)

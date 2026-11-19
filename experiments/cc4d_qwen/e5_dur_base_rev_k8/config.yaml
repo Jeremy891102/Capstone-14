@@ -1,0 +1,35 @@
+name: cc4d_e5_dur_base_rev_k8
+description: CC4D answer-type experiment, group e5_dur_base_rev, 8 per call.
+data:
+  benchmark: ../../../data/cc4d_answer_types_v1/e5_dur_base_rev
+  require_local_videos: true
+  video_root: /home/nyu-data/datasets/captaincook4d/gopro_360p
+method:
+  name: batched
+  batch_size: 8
+prompt:
+  system: ../prompts/system.txt
+  user: ../prompts/user.txt
+  context_keys:
+  - task_name
+  - recipe
+  - error_definitions
+provider:
+  name: vllm
+  model: qwen3-vl-32b
+  vllm:
+    base_url: http://localhost:8000/v1
+    frame_fps: 2.0
+    video_token_budget: 145000
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 2
+  max_attempts: 3
+  timeout_s: 900
+pricing: null

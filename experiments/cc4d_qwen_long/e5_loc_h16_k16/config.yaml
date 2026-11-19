@@ -1,0 +1,58 @@
+name: cc4d_e5_loc_h16_k16_long
+description: CC4D answer-type experiment, group e5_loc_h16, 16 per call. Videos over
+  145k tokens at 352p; 230k budget (TP=4).
+data:
+  benchmark: ../../../data/cc4d_answer_types_v1/e5_loc_h16
+  require_local_videos: true
+  video_root: /home/nyu-data/datasets/captaincook4d/gopro_360p
+  report_ids:
+  - cc4d-10_46__loc_bool
+  - cc4d-10_46__loc_single
+  - cc4d-10_46__loc_seconds
+  - cc4d-15_41__loc_bool
+  - cc4d-15_41__loc_single
+  - cc4d-15_41__loc_seconds
+  - cc4d-16_42__loc_bool
+  - cc4d-16_42__loc_single
+  - cc4d-16_42__loc_seconds
+  - cc4d-16_26__loc_bool
+  - cc4d-16_26__loc_single
+  - cc4d-16_26__loc_seconds
+  - cc4d-23_24__loc_bool
+  - cc4d-23_24__loc_single
+  - cc4d-23_24__loc_seconds
+  - cc4d-25_42__loc_bool
+  - cc4d-25_42__loc_single
+  - cc4d-25_42__loc_seconds
+  - cc4d-26_42__loc_bool
+  - cc4d-26_42__loc_single
+  - cc4d-26_42__loc_seconds
+method:
+  name: batched
+  batch_size: 16
+prompt:
+  system: ../../cc4d_qwen/prompts/system.txt
+  user: ../../cc4d_qwen/prompts/user.txt
+  context_keys:
+  - task_name
+  - recipe
+  - error_definitions
+provider:
+  name: vllm
+  model: qwen3-vl-32b
+  vllm:
+    base_url: http://localhost:8000/v1
+    frame_fps: 2.0
+    video_token_budget: 230000
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 2
+  max_attempts: 3
+  timeout_s: 900
+pricing: null

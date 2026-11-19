@@ -66,15 +66,48 @@ def _identifiers(name: str, text: str) -> set[str]:
 def render_questions(fields: Sequence[FieldSpec]) -> str:
     blocks = []
     for n, f in enumerate(fields, start=1):
-        lines = [f"Q{n}. [field_id: {f.id}]", f"Question: {f.question}", "Options:"]
-        lines += [f"{choice_letter(i)}. {c}" for i, c in enumerate(f.choices)]
+        lines = [f"Q{n}. [field_id: {f.id}]", f"Question: {f.question}"]
+        if f.choices:
+            lines.append("Options:")
+            lines += [f"{choice_letter(i)}. {c}" for i, c in enumerate(f.choices)]
         blocks.append("\n".join(lines))
     return "\n\n".join(blocks)
 
 
+def _answer_hint(f: FieldSpec) -> str:
+    letters = "/".join(f.letters())
+    hint = {
+        "single_choice": f"one letter: {letters}",
+        "multi_choice": f'JSON list of letters from {letters}, e.g. ["A", "C"], [] if none'
+        if f.exclusive_choice is None
+        else (
+            f'JSON list of letters from {letters}, e.g. ["A", "C"]; '
+            f'{f.exclusive_letter()} ("{f.exclusive_choice}") only on its own'
+        ),
+        "bool": "true or false",
+        "int": "integer",
+        "seconds": "number of seconds, as a plain number (125, not 2:05 or 0205)",
+        "open_text": "short text answer",
+    }[f.answer_type]
+    if not f.allow_not_visible:
+        return f"<{hint}>"
+    if f.answer_type == "multi_choice":  # models wrote ["not_visible"] inside the list
+        return f'<{hint}; or the bare string "not_visible", never inside a list>'
+    return f'<{hint} or "not_visible">'
+
+
+# Letters and text are JSON strings, so their placeholder is quoted. The other types are bare JSON
+# values; a quoted placeholder there made models answer "9" or "F" and lose the answer.
+_QUOTED = frozenset({"single_choice", "open_text"})
+
+
 def render_answer_format(fields: Sequence[FieldSpec]) -> str:
-    skeleton = {f.id: "<one letter: " + "/".join(f.letters()) + ">" for f in fields}
-    return json.dumps(skeleton, indent=2)
+    rows = [
+        f"  {json.dumps(f.id)}: " + (json.dumps(h) if f.answer_type in _QUOTED else h)
+        for f in fields
+        for h in [_answer_hint(f)]
+    ]
+    return "{\n" + ",\n".join(rows) + "\n}"
 
 
 def render_context(context: Mapping[str, ContextValue], keys: Sequence[str]) -> str:

@@ -68,6 +68,9 @@ class GeminiProviderConfig(_Strict):
     media_timeout_s: float = Field(default=120.0, gt=0)
     max_payload_bytes: int = Field(default=20_000_000, gt=0)
     api_key_env: str = "GEMINI_API_KEY"
+    # vertex_express model URL prefix; some models (gemini-4-argon) exist only under
+    # locations/global
+    base_url: str = "https://aiplatform.googleapis.com/v1/publishers/google/models/"
     file_poll_interval_s: float = Field(default=2.0, gt=0)
     file_active_timeout_s: float = Field(default=300.0, gt=0)
     delete_uploaded_files: bool = True
@@ -90,13 +93,27 @@ class OpenAIProviderConfig(_Strict):
     image_detail: Literal["auto", "low", "high"] = "auto"
 
 
+class VLLMProviderConfig(_Strict):
+    base_url: str = "http://localhost:8000/v1"
+    api_key_env: str = "VLLM_API_KEY"  # optional; "EMPTY" is sent when unset
+    frame_fps: float = Field(default=2.0, gt=0, le=24)  # fixed; long clips lose resolution instead
+    # Context available to video tokens. A clip whose tokens at max_height exceed this is sent at
+    # a lower height (never a lower fps); below min_height the call fails.
+    video_token_budget: int = Field(default=145_000, gt=0)
+    max_height: int = Field(default=352, gt=0)
+    min_height: int = Field(default=64, gt=0)
+    max_payload_bytes: int = Field(default=400_000_000, gt=0)
+    media_timeout_s: float = Field(default=300.0, gt=0)
+
+
 class ProviderConfig(_Strict):
-    name: Literal["mock", "gemini", "openrouter", "openai"]
+    name: Literal["mock", "gemini", "openrouter", "openai", "vllm"]
     model: str = Field(min_length=1)  # always explicit; never a presumed "latest" default
     mock: MockProviderConfig = Field(default_factory=MockProviderConfig)
     gemini: GeminiProviderConfig = Field(default_factory=GeminiProviderConfig)
     openrouter: OpenRouterProviderConfig = Field(default_factory=OpenRouterProviderConfig)
     openai: OpenAIProviderConfig = Field(default_factory=OpenAIProviderConfig)
+    vllm: VLLMProviderConfig = Field(default_factory=VLLMProviderConfig)
 
 
 class GenerationConfig(_Strict):
@@ -113,6 +130,8 @@ class VideoConfig(_Strict):
     # Send report time ranges as clip offsets. If False, time ranges are dropped *explicitly*
     # (recorded in the frozen config) and whole videos are sent.
     use_time_range: bool = True
+    # False = send no video at all (text-only control run).
+    enabled: bool = True
 
 
 class ExecutionConfig(_Strict):

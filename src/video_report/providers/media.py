@@ -72,9 +72,10 @@ class LocalMedia:
         if result.returncode:
             raise PermanentProviderError("media_failed", "ffmpeg could not prepare the video")
 
-    def clip(self, video: VideoInput, fps: float) -> Path:
+    def clip(self, video: VideoInput, fps: float, height: int | None = None) -> Path:
+        height = height or self.height
         with self._lock:
-            key = self._key(video, fps)
+            key = (*self._key(video, fps), height)
             if key not in self._clips:
                 assert video.start_s is not None and video.end_s is not None
                 out = self.root / f"clip-{len(self._clips)}.mp4"
@@ -87,7 +88,7 @@ class LocalMedia:
                         "-i",
                         video.location,
                         "-vf",
-                        f"scale=-2:{self.height}",
+                        f"scale=-2:{height}",
                         "-r",
                         str(fps),
                         "-an",

@@ -1,0 +1,40 @@
+name: cc4d_e5_loc_not_done_k1_short
+description: CC4D answer-type experiment, group e5_loc_not_done, 1 per call. Videos
+  at full 352p under the 145k budget only.
+data:
+  benchmark: ../../../data/cc4d_answer_types_v1/e5_loc_not_done
+  require_local_videos: true
+  video_root: /home/nyu-data/datasets/captaincook4d/gopro_360p
+  report_ids:
+  - cc4d-15_30__nd1_loc_bool
+  - cc4d-15_30__nd1_loc_single
+  - cc4d-15_30__nd1_loc_seconds
+method:
+  name: batched
+  batch_size: 1
+prompt:
+  system: ../../cc4d_qwen/prompts/system.txt
+  user: ../../cc4d_qwen/prompts/user.txt
+  context_keys:
+  - task_name
+  - recipe
+  - error_definitions
+provider:
+  name: vllm
+  model: qwen3-vl-32b
+  vllm:
+    base_url: http://localhost:8000/v1
+    frame_fps: 2.0
+    video_token_budget: 145000
+video:
+  use_time_range: true
+  fps: 2.0
+generation:
+  temperature: 0.0
+  max_output_tokens: 2048
+  response_format: json
+execution:
+  concurrency: 2
+  max_attempts: 3
+  timeout_s: 900
+pricing: null

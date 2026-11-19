@@ -18,9 +18,12 @@ from urllib.parse import urlparse
 from pydantic import ValidationError
 
 from video_report.benchmarks.schema import (
+    NOT_VISIBLE,
     BenchmarkManifest,
+    FieldSpec,
     FieldTarget,
     Report,
+    choice_letter,
     letter_index,
 )
 from video_report.io_utils import iter_jsonl, read_json
@@ -126,17 +129,25 @@ def validate_targets(
                 )
             continue
         spec = report.field(t.field_id)
-        idx = letter_index(t.target)
-        if idx is None or idx >= len(spec.choices):
+        err = _target_error(spec, t)
+        if err:
             raise DataValidationError(
-                f"target for ({t.report_id}, {t.field_id}) is {t.target!r}; expected one of "
-                f"{spec.letters()}"
+                f"target for ({t.report_id}, {t.field_id}) is {t.target!r}; {err}"
             )
-        if t.target_text is not None and t.target_text != spec.choices[idx]:
-            raise DataValidationError(
-                f"target_text mismatch for ({t.report_id}, {t.field_id}): letter {t.target} is "
-                f"{spec.choices[idx]!r} but target_text is {t.target_text!r}"
-            )
+        if t.target_text is not None:
+            if spec.answer_type != "single_choice" or not _is_letter_target(t.target):
+                raise DataValidationError(
+                    f"target_text for ({t.report_id}, {t.field_id}) is only checked for "
+                    f"single_choice letter targets; put readable answers in evidence"
+                )
+            idx = letter_index(str(t.target))
+            assert idx is not None  # checked by _target_error
+            text = spec.choices[idx]
+            if t.target_text != text:
+                raise DataValidationError(
+                    f"target_text mismatch for ({t.report_id}, {t.field_id}): letter {t.target} "
+                    f"is {text!r} but target_text is {t.target_text!r}"
+                )
         index[(t.report_id, t.field_id)] = t
     missing = [
         (rid, fid) for rid, fids in selection.items() for fid in fids if (rid, fid) not in index
@@ -144,6 +155,53 @@ def validate_targets(
     if missing:
         raise DataValidationError(f"missing targets for selected fields: {missing}")
     return index
+
+
+def _is_letter_target(v: Any) -> bool:
+    return isinstance(v, str) and v != NOT_VISIBLE
+
+
+def _target_error(spec: FieldSpec, t: FieldTarget) -> str | None:
+    """Why ``t.target`` is not a valid target for ``spec``, or None."""
+    v = t.target
+    if v == NOT_VISIBLE:
+        return None if spec.allow_not_visible else "field does not allow not_visible"
+    if spec.answer_type == "single_choice":
+        if isinstance(v, list):  # several letters, any one of them is correct
+            ok = bool(v) and len(set(v)) == len(v)
+            ok = ok and all((i := letter_index(x)) is not None and i < len(spec.choices) for x in v)
+            return None if ok else f"expected one of {spec.letters()} or a list of them"
+        idx = letter_index(v) if isinstance(v, str) else None
+        ok = idx is not None and idx < len(spec.choices)
+        return None if ok else f"expected one of {spec.letters()}"
+    if spec.answer_type == "multi_choice":
+        msg = f"expected a list of distinct letters from {spec.letters()}"
+        if not isinstance(v, list) or len(set(v)) != len(v):
+            return msg
+        ok = all((i := letter_index(x)) is not None and i < len(spec.choices) for x in v)
+        if not ok:
+            return msg
+        ex = spec.exclusive_letter()
+        if ex is not None:
+            if v == [] or (ex in v and len(v) > 1):
+                return f"{ex} ({spec.exclusive_choice}) is answered alone; [] is not allowed"
+        return None
+    if spec.answer_type == "open_text":
+        ok = isinstance(v, list) and all(isinstance(x, str) and x.strip() for x in v)
+        return None if ok else "expected a list of non-empty reference answers ([] = none)"
+    if spec.answer_type == "bool":
+        return None if isinstance(v, bool) else "expected true or false"
+    if spec.answer_type == "int":
+        return None if isinstance(v, int) and not isinstance(v, bool) else "expected an integer"
+    if spec.answer_type == "seconds":
+        ok = isinstance(v, (int, float)) and not isinstance(v, bool) and 0 <= v < float("inf")
+        if not ok:
+            return "expected a finite number of seconds >= 0"
+        length = t.evidence.get("length")
+        if spec.timestamp and not (isinstance(length, (int, float)) and length > 0):
+            return "a timestamp target needs the step length > 0 in evidence.length"
+        return None
+    raise AssertionError(f"unhandled answer_type {spec.answer_type}")
 
 
 # --------------------------------------------------------------------------- benchmark dirs
