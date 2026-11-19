@@ -1,6 +1,6 @@
 # Qwen3-VL-32B attention probe: do answers look at the video, and how does it change with position and batch size?
 
-Status (2026-11-19): probe and analysis finished (k = all on class A and B, k = 8 on class A). The intervention has not started. Chinese version with more detail: [attention_probe.zh.md](attention_probe.zh.md).
+Status (2026-11-19): probe and analysis finished (k = all on class A and B, k = 8 on class A). 
 
 Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_experiment/q7.md)).
 
@@ -15,7 +15,7 @@ Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_exper
 
 ## 1. Why
 
-The mentor proposed using the open weights to measure how much attention the answer tokens put on the video as a function of distance from the end of the prompt, and, if Qwen shows the Gemini-like position effect, to scale up visual attention for far-away questions at inference time.
+We proposed using the open weights to measure how much attention the answer tokens put on the video as a function of distance from the end of the prompt, and, if Qwen shows the Gemini-like position effect, to scale up visual attention for far-away questions at inference time.
 
 First check of the premise (HD-EPIC four-model per-question data; accuracy change per doubling of distance from the end, controlling for batch size):
 
