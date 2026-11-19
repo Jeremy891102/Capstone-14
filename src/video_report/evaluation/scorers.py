@@ -98,7 +98,8 @@ def _letters(spec: FieldSpec, raw: Any) -> list[str] | None:
 
 
 def _choice_texts_to_letters(spec: FieldSpec, raw: Any) -> Any:
-    """multi_choice only: an item that is exactly an option's text (case-insensitive) becomes its letter."""
+    """multi_choice only: an item that is exactly an option's text (case-insensitive) becomes
+    its letter."""
     if not isinstance(raw, list):
         return raw
     by_text = {c.strip().lower(): choice_letter(i) for i, c in enumerate(spec.choices)}

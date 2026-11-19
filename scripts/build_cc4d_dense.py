@@ -65,7 +65,9 @@ def clean(desc):  # "Rinse-Rinse a tomato" -> "Rinse a tomato"
 
 def recipe_text(name):
     """Recipe steps and their prerequisites from the task graph, as model-facing text."""
-    g = json.loads((A / "task_graphs" / (re.sub(r"[^a-z]", "", name.lower()) + ".json")).read_text())
+    g = json.loads(
+        (A / "task_graphs" / (re.sub(r"[^a-z]", "", name.lower()) + ".json")).read_text()
+    )
     end = max(map(int, g["steps"]))
     desc = {int(k): clean(v) for k, v in g["steps"].items() if int(k) not in (0, end)}
     after = {i: [] for i in desc}
@@ -86,7 +88,8 @@ def recipe_text(name):
         for n, i in enumerate(same, 1):
             label[i] = f"{text} ({ORDINAL[n]} time)"
     lines = [
-        f"- {label[i]}" + (f" (after: {'; '.join(label[j] for j in sorted(after[i]))})" if after[i] else "")
+        f"- {label[i]}"
+        + (f" (after: {'; '.join(label[j] for j in sorted(after[i]))})" if after[i] else "")
         for i in sorted(desc)
     ]
     return list(label.values()), (
@@ -111,7 +114,10 @@ def letters(idxs):
     return [choice_letter(i) for i in sorted(idxs)]
 
 
-norm = lambda t: re.sub(r"\s+", " ", t.lower())
+def norm(t):
+    return re.sub(r"\s+", " ", t.lower())
+
+
 recipes = {a: recipe_text(n) for a, n in activity_names.items()}
 recipe_labels = {a: {norm(t) for t in labels} for a, (labels, _) in recipes.items()}
 reports, gt = [], []
@@ -140,7 +146,8 @@ for rid in args.recordings or sorted(recs, key=lambda k: [int(x) for x in k.spli
     skip_opts = missing + rng.sample(others, N_REAL - len(missing))
     rng.shuffle(skip_opts)
 
-    def longest_opts(answer):  # the answer and 7 other filmed steps, shuffled
+    # the answer and 7 other filmed steps, shuffled; loop variables bound at definition
+    def longest_opts(answer, label=label, done=done, rng=rng):
         rest = [label[id(s)] for s in done if label[id(s)] != answer]
         opts = [answer] + rng.sample(rest, N_REAL - 1)
         rng.shuffle(opts)

@@ -52,10 +52,17 @@ def main():
     ap.add_argument("--exp", type=Path, default=Path("experiments/cc4d_ref"))
     ap.add_argument("--per-type", type=int, default=8)
     ap.add_argument("--seed", type=int, default=20261112)
-    ap.add_argument("--no-nv", action="store_true", help="same targets, but no question allows not_visible (writes *_nonv dirs)")
+    ap.add_argument(
+        "--no-nv",
+        action="store_true",
+        help="same targets, but no question allows not_visible (writes *_nonv dirs)",
+    )
     args = ap.parse_args()
     if args.no_nv:
-        args.out, args.exp = args.out.with_name(args.out.name + "_nonv"), args.exp.with_name(args.exp.name + "_nonv")
+        args.out, args.exp = (
+            args.out.with_name(args.out.name + "_nonv"),
+            args.exp.with_name(args.exp.name + "_nonv"),
+        )
 
     gt = {(g["report_id"], g["field_id"]): g for g in rows(args.src / "ground_truth.jsonl")}
     rng = random.Random(args.seed)
@@ -73,20 +80,41 @@ def main():
             for i in sorted(rng.sample(pool[t], min(args.per_type, len(pool[t])))):
                 f = {**fields[i], "allow_not_visible": False} if args.no_nv else fields[i]
                 b = i // K * K
-                refs = [{**x, "allow_not_visible": False} if args.no_nv else x for j, x in enumerate(fields[b : b + K], start=b) if j != i]
+                refs = [
+                    {**x, "allow_not_visible": False} if args.no_nv else x
+                    for j, x in enumerate(fields[b : b + K], start=b)
+                    if j != i
+                ]
                 assert len(refs) == K - 1
                 block = render_questions([FieldSpec(**x) for x in refs])
                 block = re.sub(r"(?m)^Q(\d+)\. \[field_id: [^\]]*\]", r"R\1.", block)
                 rid = f"{r['id']}__{f['id']}"
-                targets.append({"report_id": rid, "recording": r["id"], "field_id": f["id"], "type": t,
-                                "batch_start": b, "reference_ids": [x["id"] for x in refs]})
+                targets.append(
+                    {
+                        "report_id": rid,
+                        "recording": r["id"],
+                        "field_id": f["id"],
+                        "type": t,
+                        "batch_start": b,
+                        "reference_ids": [x["id"] for x in refs],
+                    }
+                )
                 g = {**gt[r["id"], f["id"]], "report_id": rid}
                 for cond in out:
                     ctx = dict(r["input"]["context"])
                     if cond == "ctx7":
                         ctx["reference_questions"] = HEADER + block
-                    rep = {**r, "id": rid, "fields": [f], "input": {**r["input"], "context": ctx},
-                           "metadata": {**r["metadata"], "created_by": "build_cc4d_reference", "condition": cond}}
+                    rep = {
+                        **r,
+                        "id": rid,
+                        "fields": [f],
+                        "input": {**r["input"], "context": ctx},
+                        "metadata": {
+                            **r["metadata"],
+                            "created_by": "build_cc4d_reference",
+                            "condition": cond,
+                        },
+                    }
                     out[cond][0].append(rep)
                     out[cond][1].append(g)
 
@@ -96,13 +124,29 @@ def main():
         d.mkdir(parents=True, exist_ok=True)
         dump(d / "reports.jsonl", reps)
         dump(d / "ground_truth.jsonl", gts)
-        (d / "manifest.json").write_text(json.dumps({**man, "benchmark_id": f"{args.out.name}_{cond}",
-            "description": f"CC4D reference-context control, {cond}: one target question per report."}, indent=2) + "\n")
-    (args.out / "targets.json").write_text(json.dumps({"seed": args.seed, "per_type": args.per_type, "targets": targets}, indent=1))
+        (d / "manifest.json").write_text(
+            json.dumps(
+                {
+                    **man,
+                    "benchmark_id": f"{args.out.name}_{cond}",
+                    "description": (
+                        f"CC4D reference-context control, {cond}: one target question per report."
+                    ),
+                },
+                indent=2,
+            )
+            + "\n"
+        )
+    (args.out / "targets.json").write_text(
+        json.dumps({"seed": args.seed, "per_type": args.per_type, "targets": targets}, indent=1)
+    )
     print(len(targets), "targets;", {t: sum(x["type"] == t for x in targets) for t in TYPES})
 
     # model templates: the existing k=8 fwd configs (same provider, video and generation settings)
-    base = {"argon": Path("experiments/cc4d_k32/fwd_k8"), "qwen": Path("experiments/cc4d_k32_qwen/fwd_k8")}
+    base = {
+        "argon": Path("experiments/cc4d_k32/fwd_k8"),
+        "qwen": Path("experiments/cc4d_k32_qwen/fwd_k8"),
+    }
     for model, bdir in base.items():
         if not (bdir / "config.yaml").exists():  # this machine only has the other model's template
             continue
@@ -121,8 +165,14 @@ def main():
                 for k in ("system", "user"):
                     cfg["prompt"][k] = rel(bdir / cfg0["prompt"][k])
                 if cond == "ctx7":
-                    cfg["prompt"]["context_keys"] = [*cfg["prompt"]["context_keys"], "reference_questions"]
-                cfg["video"] = {**cfg["video"], **({"enabled": False} if video == "novideo" else {})}
+                    cfg["prompt"]["context_keys"] = [
+                        *cfg["prompt"]["context_keys"],
+                        "reference_questions",
+                    ]
+                cfg["video"] = {
+                    **cfg["video"],
+                    **({"enabled": False} if video == "novideo" else {}),
+                }
                 (cdir / "config.yaml").write_text(yaml.safe_dump(cfg, sort_keys=False))
     print("configs:", sorted(p.name for p in args.exp.iterdir()))
 

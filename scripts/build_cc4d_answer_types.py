@@ -66,7 +66,9 @@ ap.add_argument("out")
 ap.add_argument("--dense", default="data/cc4d_dense_v1")
 ap.add_argument("--seed", type=int, default=0)
 ap.add_argument("--recordings", nargs="*")
-ap.add_argument("--video-uri", default="{rid}_360p.mp4", help="video file name; the VM uses {rid}.mp4")
+ap.add_argument(
+    "--video-uri", default="{rid}_360p.mp4", help="video file name; the VM uses {rid}.mp4"
+)
 args = ap.parse_args()
 A, DENSE, OUT = pathlib.Path(args.annotations), pathlib.Path(args.dense), pathlib.Path(args.out)
 
@@ -134,7 +136,8 @@ def load(rid):
                 "e": s["end_time"],
                 "tags": tags,
                 "errs": s.get("errors") or [],
-                "mod": s.get("modified_description"), "filmed": filmed,
+                "mod": s.get("modified_description"),
+                "filmed": filmed,
                 "not_done": s["start_time"] < 0 and "Missing Step" in tags,
             }  # fmt: skip
         )

@@ -45,7 +45,7 @@ def video_tokens(duration_s: float, fps: float, height: int) -> int:
 
 def choose_height(request: ModelRequest, opts: VLLMProviderConfig) -> int:
     fps = request.fps or opts.frame_fps
-    seconds = sum(v.end_s - v.start_s for v in request.videos)  # type: ignore[operator]
+    seconds = sum(v.end_s - v.start_s for v in request.videos)  # type: ignore[operator,misc]
     for height in range(opts.max_height, opts.min_height - 1, -32):
         if video_tokens(seconds, fps, height) <= opts.video_token_budget:
             return height
@@ -137,7 +137,7 @@ class VLLMProvider:
             timeout_s,
             self.options.max_payload_bytes,
         )
-        seconds = sum(v.end_s - v.start_s for v in request.videos)  # type: ignore[operator]
+        seconds = sum(v.end_s - v.start_s for v in request.videos)  # type: ignore[operator,misc]
         return replace(
             self._to_response(data),
             metadata={

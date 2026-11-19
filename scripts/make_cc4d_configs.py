@@ -71,7 +71,11 @@ def main():
         provider = {
             "name": "vllm",
             "model": args.model,
-            "vllm": {"base_url": args.base_url, "frame_fps": 2.0, "video_token_budget": args.token_budget},
+            "vllm": {
+                "base_url": args.base_url,
+                "frame_fps": 2.0,
+                "video_token_budget": args.token_budget,
+            },
         }
     else:
         provider = {
@@ -114,7 +118,11 @@ def main():
                     "max_output_tokens": args.max_output_tokens,
                     "response_format": "json",
                 },
-                "execution": {"concurrency": args.concurrency, "max_attempts": 3, "timeout_s": 900 if args.provider == "vllm" else 300},
+                "execution": {
+                    "concurrency": args.concurrency,
+                    "max_attempts": 3,
+                    "timeout_s": 900 if args.provider == "vllm" else 300,
+                },
                 "pricing": PRICING.get(args.model),
             }
             calls = sum(math.ceil(len(r["fields"]) / k) for r in reports)

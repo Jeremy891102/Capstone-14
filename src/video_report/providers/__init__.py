@@ -1,4 +1,7 @@
-"""Provider construction. Mock, Gemini (Developer or Vertex Express), OpenRouter, OpenAI and vLLM."""
+"""Provider construction.
+
+Mock, Gemini (Developer or Vertex Express), OpenRouter, OpenAI and vLLM.
+"""
 
 from __future__ import annotations
 

@@ -408,8 +408,11 @@ def test_vllm_video_payload_budget_and_no_key(video):
         p.close()
     assert not root.exists()
     assert preflight(ProviderConfig(name="vllm", model="m"), {}) is None
+
     # budget: fps stays fixed, height drops for long clips, fails below min_height
-    long = lambda m: replace(req(video), videos=(VideoInput("v", "/x", True, None, 0, m * 60),))
+    def long(m):
+        return replace(req(video), videos=(VideoInput("v", "/x", True, None, 0, m * 60),))
+
     cfg = VLLMProviderConfig()
     assert choose_height(long(10), cfg) == 352 and choose_height(long(41), cfg) == 160
     with pytest.raises(ValueError):
