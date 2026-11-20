@@ -12,6 +12,7 @@ Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_exper
 | Does asking everything at once (k = all) look less at the video than k = 8? | **Yes, in the late layers.** Same question, same position, same answer: the video's share in the last quarter of layers is about 12–13 pp lower (60% vs 47%) | 3.2 |
 | Does it cost accuracy? | Same direction but small: +1.8 to +4.0 pp, intervals include 0 | 3.3 |
 | Does scaling up video attention fix k = all? | **No.** Raising the late-layer video share from 50% to 69% leaves accuracy unchanged (−0.6 to +0.2 pp, all intervals include 0) | 5 |
+| Why, then, does k = all do worse? | **Answers collapse to defaults and copy the previous answer.** At k = all, positions 32+ are 91% default answers (truth: 39%) and 85–94% repeat the previous step's answer; at k = 8 the default rate is 54–60% | 6 |
 
 ## 1. Why
 
@@ -125,9 +126,28 @@ Conditions: `base` (α = 1, same manual code path); `a1.5`, `a2`, `a3` (last qua
 
 Reading: the 13 pp attention gap in 3.2 is not what costs k = all its accuracy, or at least restoring it with one global factor does not help. Limits: one factor for all heads in the late layers (no per-head intervention); a k = 8 gap of 2–4 pp leaves little room to detect a recovery; only α up to 3.
 
-## 6. Next steps
+## 6. Answer bias: defaults and copying
+
+Existing vLLM answers (`results/cc4d_answer_bias.py`), step questions only (`correct`, `error_types`, `duration`). Default answer: `correct` = true, `error_types` = [], `duration` = 1 or 10 s. Cell: default rate / rate of repeating the previous step's answer, %, by position in the call.
+
+| Run, field | 0–7 | 8–15 | 16–31 | 32+ |
+| --- | --- | --- | --- | --- |
+| Ground truth: default rate | `correct` 39, `error_types` 39, `duration` 0 | | | |
+| k = 8 (positions 0–7 only) | 60 / 56 / 54 (default rate, the three fields) | – | – | – |
+| k = all forward, `correct` | 70 / 38 | 80 / 86 | 88 / 91 | 91 / 94 |
+| k = all forward, `error_types` | 64 / 12 | 81 / 82 | 88 / 88 | 91 / 94 |
+| k = all forward, `duration` | 61 / 0 | 72 / 50 | 82 / 71 | 91 / 85 |
+| k = all reversed, `correct` | 97 / 96 | 98 / 95 | 98 / 96 | 99 / 84 |
+
+- At k = all the output turns into a default and the previous answer; the effect grows with position and is already there from the first questions in the reversed order.
+- This matches the attention picture (more attention on earlier answers, 3.1) and explains why the intervention in section 5 does nothing: most answers are copied, not read from the video.
+- Position therefore does matter for the answers, through copying, although not through lower video attention.
+- Not checked: whether the defaults are often right, and how much of the repetition is real similarity between neighbouring steps.
+
+## 7. Next steps
 
 1. **Done:** k = 8 vs k = all (3.2); intervention at k = all (5).
-2. **Answer-bias check (existing data):** does the share of answers equal to the previous answer of the same type rise with position and k? Compare with the "no mistake" and "10 s" biases.
-3. **Format control (new generation):** put the questions before the video to separate distance from the end from distance to the video.
-4. Optional: per-head analysis, then intervene only on the heads that carry the video information.
+2. **Done:** answer-bias check (6).
+3. **Oracle clips:** give each step question only its ground-truth segment, at k = 1 and k = 8, to see whether the input or the model's perception is the limit.
+4. **Break the copying:** same questions with separators or shuffled order, to see whether the default rate falls.
+5. Optional: format control (questions before the video); per-head intervention.
