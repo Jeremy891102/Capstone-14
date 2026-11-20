@@ -1,6 +1,6 @@
 # Qwen3-VL-32B attention probe: do answers look at the video, and how does it change with position and batch size?
 
-Status (2026-11-19): probe and analysis finished (k = all on class A and B, k = 8 on class A). 
+Status (2026-11-20): probe, analysis and the first intervention finished (k = all on class A and B, k = 8 on class A).
 
 Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_experiment/q7.md)).
 
@@ -11,7 +11,7 @@ Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_exper
 | Do later questions look less at the video? | **No.** Within k = all, the video's share of attention barely moves with position (−0.03 pp per doubling); once the sink and earlier answers are excluded it rises. What changes is that later answers look more at the answers already written | 3.1 |
 | Does asking everything at once (k = all) look less at the video than k = 8? | **Yes, in the late layers.** Same question, same position, same answer: the video's share in the last quarter of layers is about 12–13 pp lower (60% vs 47%) | 3.2 |
 | Does it cost accuracy? | Same direction but small: +1.8 to +4.0 pp, intervals include 0 | 3.3 |
-| Worth intervening? | Worth trying: scale up the video attention in the late layers at k = all. The expected accuracy change is only 2–4 pp, so detecting it needs all 54 reports | 5 |
+| Does scaling up video attention fix k = all? | **No.** Raising the late-layer video share from 50% to 69% leaves accuracy unchanged (−0.6 to +0.2 pp, all intervals include 0) | 5 |
 
 ## 1. Why
 
@@ -100,10 +100,34 @@ Both intervals include 0. The +11 pp seen with only 7 reports was noise plus the
 - **More attention on earlier answers is not copying:** the JSON format naturally looks back. Needs a separate check of whether answers repeat the previous one.
 - **Sample:** 23 class A and 31 class B reports, intervals bootstrap over reports; k = 8 covers class A only.
 
-## 5. Next steps
+## 5. Intervention: scaling up video attention at k = all
 
-1. **Done:** k = 8 vs k = all (3.2). The late-layer gap of about 13 pp makes batch size worth intervening on.
+Regenerate the k = all answers of all 54 reports (`scripts/qwen_intervene.py`, scored by `results/cc4d_intervene_score.py`). Prefill once, then decode once per condition from the same KV cache. For the generated tokens only, add log α to the attention scores on the target keys before the softmax. The first generated token comes from the prefill and is not modified.
+
+Conditions: `base` (α = 1, same manual code path); `a1.5`, `a2`, `a3` (last quarter of layers, video keys); `all2` (all layers, video keys); `text2` (control: last quarter of layers, prompt-text keys). `base` is the baseline instead of vLLM's saved answers, because the manual attention differs from the fused kernel by bf16 rounding; the two agree on accuracy (33.4% vs 33.5%).
+
+2,557 ordinary questions, 54 reports, 95% bootstrap intervals over reports:
+
+| Condition | Accuracy | Minus base (pp) [95% CI] | Late-layer video share | Answers changed vs base |
+| --- | --- | --- | --- | --- |
+| base | 33.4% | – | 49.6% | – |
+| a1.5 | 33.6% | +0.2 [−0.1, +0.6] | 57.6% | 3.2% |
+| a2 | 33.0% | −0.4 [−1.2, +0.2] | 62.8% | 4.7% |
+| a3 | 32.7% | −0.6 [−1.6, +0.1] | 69.4% | 6.0% |
+| all2 | 33.3% | −0.0 [−0.6, +0.5] | 62.5% | 7.4% |
+| text2 (control) | 33.0% | −0.4 [−0.7, −0.0] | 36.0% | 4.4% |
+| vLLM k = 8 (reference) | 35.6% | +2.3 [−0.2, +4.7] | – | – |
+
+- The intervention does what it should (video share rises with α, falls for the text control) and the video share at α = 3 is above the k = 8 level (60%), yet accuracy does not move toward k = 8.
+- No answer type shows a consistent direction (bool, multi-choice and seconds all within ±1 pp; integer and single-choice have 54 and 39 questions).
+- The text control also lowers accuracy slightly, so the small drop at α = 2–3 is as consistent with "perturbing attention hurts a little" as with anything about the video.
+- All outputs parsed; output length unchanged.
+
+Reading: the 13 pp attention gap in 3.2 is not what costs k = all its accuracy, or at least restoring it with one global factor does not help. Limits: one factor for all heads in the late layers (no per-head intervention); a k = 8 gap of 2–4 pp leaves little room to detect a recovery; only α up to 3.
+
+## 6. Next steps
+
+1. **Done:** k = 8 vs k = all (3.2); intervention at k = all (5).
 2. **Answer-bias check (existing data):** does the share of answers equal to the previous answer of the same type rise with position and k? Compare with the "no mistake" and "10 s" biases.
-3. **Intervention (new generation, HF):** in the last quarter of layers, add log α to the answer tokens' attention scores on video keys before the softmax (α = 1.5, 2, 4) and regenerate at k = all. Controls: all layers; scaling a text span instead of the video; α = 1 as HF's own baseline (not vLLM's). Metrics: accuracy, video gain (existing no-video control), hallucination, "no mistake" share, position curve; k = 8 is the upper reference. Because the k = 8 / k = all accuracy gap is only 2–4 pp, the evaluation must cover all 54 reports.
-4. **Format control (new generation):** put the questions before the video to separate distance from the end from distance to the video.
-5. Optional: per-head analysis to find the heads that carry the video information.
+3. **Format control (new generation):** put the questions before the video to separate distance from the end from distance to the video.
+4. Optional: per-head analysis, then intervene only on the heads that carry the video information.
