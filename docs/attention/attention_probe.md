@@ -12,6 +12,7 @@ Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_exper
 | Does asking everything at once (k = all) look less at the video than k = 8? | **Yes, in the late layers.** Same question, same position, same answer: the video's share in the last quarter of layers is about 12–13 pp lower (60% vs 47%) | 3.2 |
 | Does it cost accuracy? | Same direction but small: +1.8 to +4.0 pp, intervals include 0 | 3.3 |
 | Does scaling up video attention fix k = all? | **No.** Raising the late-layer video share from 50% to 69% leaves accuracy unchanged (−0.6 to +0.2 pp, all intervals include 0) | 5 |
+| Is the input the limit? | **No, for mistake detection.** With exactly the right ± 5 s clip the model still cannot tell a correct step from a wrong one (balanced accuracy 53%, chance 50%) | 7 |
 | Why, then, does k = all do worse? | **Answers collapse to defaults and copy the previous answer.** At k = all, positions 32+ are 91% default answers (truth: 39%) and 85–94% repeat the previous step's answer; at k = 8 the default rate is 54–60% | 6 |
 
 ## 1. Why
@@ -144,10 +145,27 @@ Existing vLLM answers (`results/cc4d_answer_bias.py`), step questions only (`cor
 - Position therefore does matter for the answers, through copying, although not through lower video attention.
 - Not checked: whether the defaults are often right, and how much of the repetition is real similarity between neighbouring steps.
 
-## 7. Next steps
+## 7. Oracle clips: is the input the limit?
+
+One report per done step (951 steps, 64 recordings), the clip is the annotated step span ± 5 s (mean 54 s), both step questions (`correct`, `error_types`) in one call (`scripts/build_cc4d_oracle.py`, `results/cc4d_oracle_compare.py`). Compared with k = 8 and k = all on the same questions.
+
+| | `correct` accuracy | Default rate (answers true) | Accuracy, step done correctly | Accuracy, step done wrong | Balanced accuracy |
+| --- | --- | --- | --- | --- | --- |
+| Oracle clip | 57.7% | 14.6% | 18.5% | 87.6% | 53.0% |
+| k = 8 | 51.6% | 63.6% | 67.6% | 39.4% | 53.5% |
+| k = all | 46.3% | 88.2% | 90.0% | 13.0% | 51.5% |
+
+- Oracle minus k = all on `correct`: +11.5 pp [+5.7, +17.7]; the default rate falls from 88% to 15%, so the copying is gone.
+- The gain is a shift in bias, not discrimination: balanced accuracy is 51.5–53.5% for all three, close to chance. k = all says "done correctly" almost always, the oracle says "done wrong" almost always, and wrong steps are the majority of this set.
+- `error_types` (exact match): oracle 21.1%, k = 8 35.4%, k = all 40.5%. About 39% of steps have no error, so answering "[]" every time scores 39%; the oracle is below that.
+- Reading: giving the model exactly the right footage does not let it tell whether a step was done correctly. For this task the limit is perception of small errors, not how much input it gets, so input allocation (zoom, retrieve, agentic) has little to gain here.
+- Limits: one padding (5 s), two questions per call, no k = 8 oracle; the prompt is the full-report prompt and may push single steps toward "wrong"; says nothing about localisation questions (start time), where finding the right span is the task.
+
+## 8. Next steps
 
 1. **Done:** k = 8 vs k = all (3.2); intervention at k = all (5).
 2. **Done:** answer-bias check (6).
-3. **Oracle clips:** give each step question only its ground-truth segment, at k = 1 and k = 8, to see whether the input or the model's perception is the limit.
-4. **Break the copying:** same questions with separators or shuffled order, to see whether the default rate falls.
-5. Optional: format control (questions before the video); per-head intervention.
+3. **Done:** oracle clips (7). The input is not the limit for mistake detection.
+4. Localisation questions (start time of a step), where finding the span is the task: the case where agentic input could still help.
+5. Check whether the oracle's bias toward "wrong" comes from the full-report prompt (single-step prompt).
+6. Optional: format control (questions before the video); per-head intervention.
