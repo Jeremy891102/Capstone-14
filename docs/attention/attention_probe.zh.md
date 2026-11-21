@@ -1,6 +1,6 @@
 # Qwen3-VL-32B 注意力量測:答案有沒有看影片,隨位置與批次大小怎麼變
 
-狀態(2026-11-20):注意力量測與分析完成(k = all 的 A、B 類,k = 8 的 A 類);HF 生成計時測試完成;干預實驗、答案偏誤檢驗、oracle 片段實驗完成。
+狀態(2026-11-20):注意力量測與分析完成(k = all 的 A、B 類,k = 8 的 A 類);干預實驗、答案偏誤檢驗、oracle 片段實驗完成。
 
 模型:Qwen3-VL-32B-Instruct。資料:`cc4d_k32_v1`(見 [q7.zh.md](../cc4d/new_experiment/q7.zh.md))。
 
@@ -165,11 +165,7 @@ A 類 23 份報告,1,101 題,k = 8 正向對 k = all 正向。取兩種 prompt �
 5. 檢查 oracle 偏向「做錯」是否來自整份報告的提示詞(改用單步提示詞)。
 6. 選做:格式對照(題目放影片前面);逐 head 干預。
 
-## 9. HF 生成計時測試
-
-已移到 [attention_intervention.zh.md](attention_intervention.zh.md)。
-
-## 10. 重現
+## 9. 重現
 
 程式在分支 `experiment/qwen-attention-probe`:
 

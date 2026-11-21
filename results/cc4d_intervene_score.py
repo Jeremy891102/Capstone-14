@@ -90,7 +90,7 @@ summary = {}
 for n in names:
     acc = boot(lambda sub, n=n: ok(n, sub).mean())
     dif = boot(lambda sub, n=n: (ok(n, sub) - ok("base", sub)).mean()) if n != "base" else None
-    summary[n] = dict(acc=acc, diff=dif)
+    summary[n] = dict(acc=acc, diff=dif, late=float(np.mean(late[n])) if late.get(n) else None)
     lv = f"{np.mean(late[n]):.1f}" if late.get(n) else "-"
     pr = f"{100 * np.mean(parsed_ok[n]):.0f}%" if n in parsed_ok else "-"
     ol = f"{np.mean(outlen[n]):.0f}" if n in outlen else "-"
