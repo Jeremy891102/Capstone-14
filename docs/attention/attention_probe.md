@@ -13,7 +13,7 @@ Model: Qwen3-VL-32B-Instruct. Data: `cc4d_k32_v1` (see [q7.md](../cc4d/new_exper
 | Does it cost accuracy? | Same direction but small: +1.8 to +4.0 pp, intervals include 0 | 3.3 |
 | Does scaling up video attention fix k = all? | **No.** Raising the late-layer video share from 50% to 69% leaves accuracy unchanged (−0.6 to +0.2 pp, all intervals include 0) | 5 |
 | Is the input the limit? | **No, for mistake detection.** With exactly the right ± 5 s clip the model still cannot tell a correct step from a wrong one (balanced accuracy 53%, chance 50%) | 7 |
-| Why, then, does k = all do worse? | **Answers collapse to defaults and copy the previous answer.** At k = all, positions 32+ are 91% default answers (truth: 39%) and 85–94% repeat the previous step's answer; at k = 8 the default rate is 54–60% | 6 |
+| Why, then, does k = all do worse? | **Answers collapse to near-constant defaults.** At k = all, positions 32+ are 91% default answers (truth: 39%) and 85–94% repeat the previous step's answer (the two overlap, so this is not evidence of copying); at k = 8 the default rate is 54–60% | 6 |
 
 ## 1. Why
 
@@ -99,14 +99,14 @@ Both intervals include 0. The +11 pp seen with only 7 reports was noise plus the
 - **Correlation, not causation.** The identical-answer check removes differing answers as a confound, nothing more.
 - **"Looks less at the video" and "more question text competes for attention" cannot be separated:** k = all has about 7× the question text.
 - **Averaged over heads and layers.** If the video information sits in a few heads, the average dilutes it; no per-head analysis yet.
-- **More attention on earlier answers is not copying:** the JSON format naturally looks back. Needs a separate check of whether answers repeat the previous one.
+- **More attention on earlier answers is not necessarily copying:** the JSON format naturally looks back. Section 6 shows the answers do repeat, but that cannot be separated from simply answering the default.
 - **Sample:** 23 class A and 31 class B reports, intervals bootstrap over reports; k = 8 covers class A only.
 
 ## 5. Intervention: scaling up video attention at k = all
 
 Moved to [attention_intervention.md](attention_intervention.md). Summary: raising the late-layer video share from 50% to 69% leaves accuracy unchanged (−0.6 to +0.2 pp, all intervals include 0).
 
-## 6. Answer bias: defaults and copying
+## 6. Answer bias: collapse to defaults
 
 Existing vLLM answers (`results/cc4d_answer_bias.py`), step questions only (`correct`, `error_types`, `duration`). Default answer: `correct` = true, `error_types` = [], `duration` = 1 or 10 s. Cell: default rate / rate of repeating the previous step's answer, %, by position in the call.
 
@@ -120,8 +120,9 @@ Existing vLLM answers (`results/cc4d_answer_bias.py`), step questions only (`cor
 | k = all reversed, `correct` | 97 / 96 | 98 / 95 | 98 / 96 | 99 / 84 |
 
 - At k = all the output turns into a default and the previous answer; the effect grows with position and is already there from the first questions in the reversed order.
-- This matches the attention picture (more attention on earlier answers, 3.1) and explains why the intervention ([attention_intervention.md](attention_intervention.md)) does nothing: most answers are copied, not read from the video.
-- Position therefore does matter for the answers, through copying, although not through lower video attention.
+- This matches the attention picture (more attention on earlier answers, 3.1) and may explain why the intervention ([attention_intervention.md](attention_intervention.md)) does nothing: most answers are a fixed default, not read from the video (a guess, not tested directly).
+- Position therefore does matter for the answers: they settle ever more on the defaults, although not through lower video attention.
+- **"Default" and "same as the previous answer" overlap heavily and cannot be told apart:** if the model answers true every time, matching the previous step follows automatically. So we cannot say the model copies earlier answers, only that its answers become nearly constant. Separating the two needs another check (shuffle or separate the questions and see whether the default rate falls).
 - Not checked: whether the defaults are often right, and how much of the repetition is real similarity between neighbouring steps.
 
 ## 7. Oracle clips: is the input the limit?
@@ -134,7 +135,7 @@ One report per done step (951 steps, 64 recordings), the clip is the annotated s
 | k = 8 | 51.6% | 63.6% | 67.6% | 39.4% | 53.5% |
 | k = all | 46.3% | 88.2% | 90.0% | 13.0% | 51.5% |
 
-- Oracle minus k = all on `correct`: +11.5 pp [+5.7, +17.7]; the default rate falls from 88% to 15%, so the copying is gone.
+- Oracle minus k = all on `correct`: +11.5 pp [+5.7, +17.7]; the default rate falls from 88% to 15%, so the collapse to defaults is gone.
 - The gain is a shift in bias, not discrimination: balanced accuracy is 51.5–53.5% for all three, close to chance. k = all says "done correctly" almost always, the oracle says "done wrong" almost always, and wrong steps are the majority of this set.
 - `error_types` (exact match): oracle 21.1%, k = 8 35.4%, k = all 40.5%. About 39% of steps have no error, so answering "[]" every time scores 39%; the oracle is below that.
 - Reading: giving the model exactly the right footage does not let it tell whether a step was done correctly. For this task the limit is perception of small errors, not how much input it gets, so input allocation (zoom, retrieve, agentic) has little to gain here.

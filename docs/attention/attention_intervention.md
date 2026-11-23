@@ -10,7 +10,7 @@ The [attention probe](attention_probe.md) found that when all questions of a rep
 
 ## Conclusion
 
-**No.** Raising the late-layer video share from 50% to 69% (above the 60% seen at k = 8) leaves accuracy unchanged: −0.6 to +0.2 pp, every interval includes 0, and a control that perturbs text attention instead does just as much. The attention gap is not what costs k = all its accuracy. What does: at k = all the answers collapse to defaults and copy the previous answer (see [attention_probe.md](attention_probe.md) section 6).
+**No.** Raising the late-layer video share from 50% to 69% (above the 60% seen at k = 8) leaves accuracy unchanged: −0.6 to +0.2 pp, every interval includes 0, and a control that perturbs text attention instead does just as much. The attention gap is not what costs k = all its accuracy. A more likely cause: at k = all the answers collapse to near-constant defaults (see [attention_probe.md](attention_probe.md) section 6).
 
 ![Accuracy change against late-layer video attention, by condition](figs/intervene_accuracy.png)
 
