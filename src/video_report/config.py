@@ -122,6 +122,9 @@ class GenerationConfig(_Strict):
     max_output_tokens: int | None = Field(default=None, gt=0)
     seed: int | None = None
     response_format: Literal["json", "text"] = "json"
+    # Gemini only: thinking level (e.g. MEDIUM for gemini-4-argon, as in the HD-EPIC baseline).
+    # None = provider default; other providers ignore it.
+    thinking_level: Literal["MINIMAL", "LOW", "MEDIUM", "HIGH"] | None = None
 
 
 class VideoConfig(_Strict):

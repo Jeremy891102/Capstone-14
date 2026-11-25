@@ -184,6 +184,8 @@ class GeminiProvider:
                 kwargs[key] = g[key]
         if g.get("response_format") == "json":
             kwargs["response_mime_type"] = "application/json"
+        if g.get("thinking_level"):
+            kwargs["thinking_config"] = t.ThinkingConfig(thinking_level=g["thinking_level"])
         return t.GenerateContentConfig(**kwargs)
 
     def _video_part(self, video: VideoInput, timeout_s: float, fps: float | None) -> Any:

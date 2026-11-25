@@ -15,11 +15,16 @@ identical at k = 8 and k = all, so the attention difference cannot come from a d
 import collections
 import gzip
 import json
+import os
 import sys
 from pathlib import Path
 
 import numpy as np
+
 from video_report.run_store import call_key
+
+# probe measure: "attention" (value tokens) or "attention_pred" (predicting positions)
+KEY = os.environ.get("ATTN_KEY", "attention")
 
 attn_dir, rows_path, runs_dir = sys.argv[1:4]
 rng = np.random.default_rng(0)
@@ -30,7 +35,7 @@ def load_attention(path):
     out = {}
     for line in open(path):
         a = json.loads(line)
-        x = np.array(a["attention"])
+        x = np.array(a[KEY])
         nl = len(x) * 3 // 4
         share = lambda m: (m[:, 0] / (m[:, 0] + m[:, 2])).mean() * 100  # noqa: E731
         out[a["report_id"], a["field_id"]] = dict(

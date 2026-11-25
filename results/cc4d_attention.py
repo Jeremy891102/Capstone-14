@@ -17,9 +17,13 @@ Attention measures, per answer (mean over text layers and heads):
 import collections
 import gzip
 import json
+import os
 import sys
 
 import numpy as np
+
+# probe measure: "attention" (value tokens) or "attention_pred" (predicting positions)
+KEY = os.environ.get("ATTN_KEY", "attention")
 
 attn_dir, rows_path, *suffixes = sys.argv[1:]
 suffixes = suffixes or [""]
@@ -36,7 +40,7 @@ for suf in suffixes:
         for line in open(f"{attn_dir}/k32_{order}_kall{suf}.jsonl"):
             a = json.loads(line)
             t, ok, nd = truth[order, a["report_id"], a["field_id"]]
-            x = np.array(a["attention"])  # layers x (video, before video, rest of prompt, answers)
+            x = np.array(a[KEY])  # layers x (video, before video, rest of prompt, answers)
             nl = len(x) * 3 // 4
             share = lambda m: (m[:, 0] / (m[:, 0] + m[:, 2])).mean()  # noqa: E731
             recs.append(

@@ -8,6 +8,7 @@ Writes attn_position.png, attn_k8_vs_kall.png, attn_layers.png.
 import collections
 import gzip
 import json
+import os
 import sys
 
 import matplotlib
@@ -15,6 +16,9 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
+
+# probe measure: "attention" (value tokens) or "attention_pred" (predicting positions)
+KEY = os.environ.get("ATTN_KEY", "attention")
 
 attn_dir, out_dir, rows_path = sys.argv[1:4]
 rng = np.random.default_rng(0)
@@ -48,7 +52,7 @@ def load(name):
     for line in open(f"{attn_dir}/{name}.jsonl"):
         a = json.loads(line)
         rows.append(
-            {**{k: a[k] for k in ("report_id", "field_id", "index")}, "x": np.array(a["attention"])}
+            {**{k: a[k] for k in ("report_id", "field_id", "index")}, "x": np.array(a[KEY])}
         )
     return rows
 

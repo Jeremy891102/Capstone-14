@@ -55,6 +55,23 @@ def answer_spans(text: str, field_ids: list[str]) -> dict[str, tuple[int, int]]:
     return spans
 
 
+def query_positions(offsets, spans, n_prompt):
+    """Response token positions used as attention queries, per field.
+
+    Returns two dicts of absolute positions (prompt length added):
+    * ``value``: tokens whose character offsets overlap the field's JSON value (the old measure).
+    * ``pred``: the positions that *predict* those tokens, i.e. each value position minus one.
+      In a causal LM the row at position p produces token p+1, so the choice of the value's first
+      token (``true``, ``[``, the first digit) is made at the token before it, typically ``":``.
+    """
+    value = {
+        f: [n_prompt + i for i, (a, b) in enumerate(offsets) if a < e and b > s]
+        for f, (s, e) in spans.items()
+    }
+    pred = {f: [p - 1 for p in ps] for f, ps in value.items()}
+    return value, pred
+
+
 def clip_seconds(r) -> float:
     return sum(v.end_s - v.start_s for v in r.videos)
 
@@ -227,15 +244,8 @@ def main() -> None:
                     enc[k] = torch.cat([enc[k], pad], 1)
 
             spans = answer_spans(text, list(req.field_ids))
-            field_pos = {
-                f: [
-                    n_prompt + i
-                    for i, (a, b) in enumerate(resp["offset_mapping"])
-                    if a < e and b > s
-                ]
-                for f, (s, e) in spans.items()
-            }
-            pos = sorted({p for ps in field_pos.values() for p in ps})
+            field_pos, pred_pos = query_positions(resp["offset_mapping"], spans, n_prompt)
+            pos = sorted({p for d in (field_pos, pred_pos) for ps in d.values() for p in ps})
             is_video = ids[0] == video_id
             in_prompt = torch.arange(ids.shape[1]) < n_prompt
             before = torch.arange(ids.shape[1]) < int(is_video.nonzero()[0])
@@ -253,9 +263,11 @@ def main() -> None:
                 if not rows:
                     print(f"{req.call_id}: no answer span for {f}", file=sys.stderr)
                     continue
-                layers = [
-                    probe["sink"][layer][rows].mean(0).tolist() for layer in sorted(probe["sink"])
-                ]
+                prows = [index[p] for p in pred_pos[f]]
+                layers, players = (
+                    [probe["sink"][layer][r].mean(0).tolist() for layer in sorted(probe["sink"])]
+                    for r in (rows, prows)
+                )
                 fh.write(
                     json.dumps(
                         {
@@ -274,6 +286,9 @@ def main() -> None:
                             # per text layer: [to video, to prompt before the video,
                             # to rest of prompt, to earlier response]
                             "attention": layers,
+                            # same, but at the positions that predict the value tokens (shifted
+                            # left by one; includes the decision token before the value)
+                            "attention_pred": players,
                         }
                     )
                     + "\n"
