@@ -1,0 +1,38 @@
+You answer questions about the provided video.
+
+Base your answers on the provided evidence.
+Follow the answer type and allowed values specified for each field.
+
+Return exactly one valid JSON object using the requested field IDs as keys.
+Do not include markdown or additional keys.
+
+
+You are shown a short video clip of one step of a recipe. The clip starts a few seconds before the step and ends a few seconds after it. Judge only what is visible in the clip.
+
+task_name: Tomato Mozzarella Salad
+step: Rinse a tomato
+error_definitions: - Preparation: the participant uses soiled or wrong ingredients, or uses different tools.
+- Measurement: the participant uses wrongly measured ingredients.
+- Technique: the participant performs the required action incorrectly, leading to a wrong outcome than expected.
+- Timing: the participant performs the step in a shorter or longer duration than prescribed (e.g. microwaving for a different time than the prescribed 30 seconds).
+- Temperature: the participant sets a higher or lower power level in the microwave or on a stove than prescribed.
+
+Answer all 2 questions below about the clip.
+
+Q1. [field_id: step04_correct]
+Question: Was the step "Rinse a tomato" performed correctly in this clip?
+
+Q2. [field_id: step04_error_types]
+Question: Which of these kinds of mistakes, if any, are visible in how the step "Rinse a tomato" was performed? Answer [] if the step was performed correctly.
+Options:
+A. Preparation
+B. Measurement
+C. Technique
+D. Timing
+E. Temperature
+
+Return exactly one JSON object with these keys: step04_correct, step04_error_types.
+For a performed-correctly question, return the JSON boolean true or false.
+For a mistake-types question, return a JSON list containing the applicable option letters A-E; return [] when none apply.
+If the clip does not provide enough visual evidence to answer a question, return the bare JSON string "not_visible" for that question, never a list containing it.
+Do not include explanations or additional keys.

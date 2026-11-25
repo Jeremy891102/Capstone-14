@@ -1,0 +1,13 @@
+You are shown a short video clip of one step of a recipe. The clip starts a few seconds before the step and ends a few seconds after it. Judge only what is visible in the clip.
+
+$context
+
+Answer all $num_fields questions below about the clip.
+
+$questions
+
+Return exactly one JSON object with these keys: $field_ids.
+For a performed-correctly question, return the JSON boolean true or false.
+For a mistake-types question, return a JSON list containing the applicable option letters A-E; return [] when none apply.
+If the clip does not provide enough visual evidence to answer a question, return the bare JSON string "not_visible" for that question, never a list containing it.
+Do not include explanations or additional keys.

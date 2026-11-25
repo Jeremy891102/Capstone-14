@@ -106,3 +106,25 @@ Newest evaluation files used:
 | Oracle | `runs_qwen32/oracle_pad5_k2` | `20261120T160018Z-5f259b` |
 | k=8 | `runs_qwen32/k32_fwd_k8` | `20261110T205510Z-1e3b5b` |
 | k=all | `runs_qwen32/k32_fwd_kall` | `20261110T205507Z-564858` |
+
+
+## Argon single-step pilot — 2026-11-25
+
+Completed a frozen, stratified 20-step operational pilot (five per error group, 20 recordings). All 20 API responses passed JSON/key/type validation; 40 fields were evaluated without invalid or missing answers, and no calls were retried. Usage was 87,839 input, 475 answer, and 1,802 thinking tokens. Estimated gross cost before conditional promotional credits: USD 0.396896. The 951-step main experiment has not started; projected gross cost is approximately USD 18–20, with the 20 completed calls reusable. These pilot answers are not a population performance estimate.
+
+The single-step user template removes the shared nonempty error-list example while keeping A–E and the not_visible option. The 951 matched-step full-video boolean baselines reconstruct to 69.3883% balanced accuracy at forward k8 and 68.0082% at forward kall. The excluded 952nd row is cc4d-18_101 step09_correct, whose annotated timestamps are -1/-1. Full-video raw multi-choice predictions remain to be located before the A–E comparison. The Qwen analysis CLI also requires a separate Argon entry point because its validation hard-codes old Qwen scores.
+
+See [pilot evidence and commands](../../../results/cc4d_oracle_argon_pilot_20261125/README.md). Original sections and outputs are preserved.
+
+
+## Argon single-step oracle — completed 2026-11-25
+
+All 951 steps completed successfully (pilot20 reused, remaining931 new calls), with no retries, no missing/invalid fields, and estimated gross token cost USD19.7930248 before conditional credits.
+
+Original-label balanced accuracy: oracle69.96% [67.04,72.82], full-video k8 69.39% [65.58,73.28], full-report68.01% [64.24,71.73]. Paired oracle-minus-k8 difference +0.57pp [-2.34,+3.52], so there is no clear overall difference, not evidence of equivalence.
+
+Excluding all Order-tagged steps (n753): oracle72.53%, k8 68.37%, paired difference +4.16pp [+0.76,+7.37]. The gain comes mainly from correctly recognizing correct steps (81.02% vs70.07%), while detection on wrong steps without Order is slightly lower (64.04% vs66.67%). Order-only accuracy drops from60.58% to31.73%. Thus the result supports a mixed effect and does not isolate localization from prompt/context/batching changes.
+
+A–E exact match is60.00% (570/950), compared with54.21% (515/950) for always-empty; paired gain +5.79pp [+2.44,+9.31]. Raw full-video multi-choice predictions remain unavailable, so their stripped-F/G comparison is not claimed. Main original-label and non-Order boolean comparisons can be calculated from archived GT/correctness rows; reconstructed baseline answer-bias/relabel metrics carry the extra assumptions documented in the report.
+
+All intervals are 95% recording bootstrap (64 recordings, B2000, seed20261124), without multiplicity correction. See [full report, figures, and evidence](../../../results/cc4d_oracle_argon_20261125/README.md). The proposed full-video/single-step-prompt control was not executed.
