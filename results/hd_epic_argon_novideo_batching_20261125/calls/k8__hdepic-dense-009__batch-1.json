@@ -1,0 +1,117 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-009::batch=1",
+    "report_id": "hdepic-dense-009",
+    "field_ids": [
+      "loc_5837",
+      "loc_179",
+      "loc_5090",
+      "loc_6095",
+      "loc_7127",
+      "loc_160",
+      "loc_5195",
+      "loc_9595"
+    ],
+    "batch_size": 8,
+    "model": "gemini-4-argon",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P01)\n\nAnswer all 8 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_5837]\nQuestion: When did the action <turn food processor bowl> happen in this clip? (segment: 0:02:29.889 - 0:05:26.220 of this clip)\nOptions:\nA. this clip from 0:04:12.400 to 0:04:14.529\nB. this clip from 0:02:57.569 to 0:03:00.080\nC. this clip from 0:03:59.349 to 0:04:01.059\nD. this clip from 0:02:48.679 to 0:02:49.899\nE. this clip from 0:02:44.139 to 0:02:47.929\n\nQ2. [field_id: loc_179]\nQuestion: When did the action <switch off food processor> happen in this clip? (segment: 0:00:00.000 - 0:04:33.950 of this clip)\nOptions:\nA. this clip from 0:00:17.500 to 0:00:17.819\nB. this clip from 0:02:13.980 to 0:02:15.500\nC. this clip from 0:00:07.950 to 0:00:10.299\nD. this clip from 0:03:29.819 to 0:03:30.760\nE. this clip from 0:00:19.350 to 0:00:19.860\n\nQ3. [field_id: loc_5090]\nQuestion: When did the action <hit lid> happen in this clip? (segment: 0:02:29.889 - 0:05:26.220 of this clip)\nOptions:\nA. this clip from 0:03:52.440 to 0:03:53.730\nB. this clip from 0:03:46.639 to 0:03:48.299\nC. this clip from 0:04:20.299 to 0:04:20.750\nD. this clip from 0:04:12.400 to 0:04:14.529\nE. this clip from 0:03:41.039 to 0:03:41.409\n\nQ4. [field_id: loc_6095]\nQuestion: When did the action <turn glass> happen in this clip? (segment: 0:00:00.000 - 0:04:33.950 of this clip)\nOptions:\nA. this clip from 0:02:57.569 to 0:03:00.080\nB. this clip from 0:02:31.679 to 0:02:32.580\nC. this clip from 0:02:41.559 to 0:02:42.470\nD. this clip from 0:04:14.650 to 0:04:16.099\nE. this clip from 0:04:16.200 to 0:04:16.950\n\nQ5. [field_id: loc_7127]\nQuestion: When did the action <turn bowl> happen in this clip? (segment: 0:02:29.889 - 0:05:26.220 of this clip)\nOptions:\nA. this clip from 0:04:01.160 to 0:04:01.849\nB. this clip from 0:02:42.569 to 0:02:44.039\nC. this clip from 0:04:01.779 to 0:04:03.460\nD. this clip from 0:04:52.250 to 0:04:53.150\nE. this clip from 0:02:48.029 to 0:02:50.380\n\nQ6. [field_id: loc_160]\nQuestion: When did the action <switch off food processor> happen in this clip? (segment: 0:03:03.130 - 0:05:26.220 of this clip)\nOptions:\nA. this clip from 0:03:29.819 to 0:03:30.760\nB. this clip from 0:05:21.309 to 0:05:22.099\nC. this clip from 0:05:18.299 to 0:05:19.339\nD. this clip from 0:04:52.250 to 0:04:53.150\nE. this clip from 0:03:43.750 to 0:03:45.919\n\nQ7. [field_id: loc_5195]\nQuestion: When did the action <turn packaging> happen in this clip? (segment: 0:00:00.000 - 0:04:33.950 of this clip)\nOptions:\nA. this clip from 0:02:54.510 to 0:02:57.169\nB. this clip from 0:02:48.029 to 0:02:50.380\nC. this clip from 0:02:53.830 to 0:02:54.330\nD. this clip from 0:04:33.740 to 0:04:33.950\nE. this clip from 0:02:57.569 to 0:03:00.080\n\nQ8. [field_id: loc_9595]\nQuestion: When did the action <open package> happen in this clip? (segment: 0:02:29.889 - 0:05:26.220 of this clip)\nOptions:\nA. this clip from 0:04:43.440 to 0:04:43.769\nB. this clip from 0:03:40.389 to 0:03:40.710\nC. this clip from 0:04:47.519 to 0:04:48.279\nD. this clip from 0:04:30.640 to 0:04:31.000\nE. this clip from 0:04:35.200 to 0:04:42.809\n\nReturn a JSON object with exactly these keys (loc_5837, loc_179, loc_5090, loc_6095, loc_7127, loc_160, loc_5195, loc_9595) and one option letter as each value:\n{\n  \"loc_5837\": \"<one letter: A/B/C/D/E>\",\n  \"loc_179\": \"<one letter: A/B/C/D/E>\",\n  \"loc_5090\": \"<one letter: A/B/C/D/E>\",\n  \"loc_6095\": \"<one letter: A/B/C/D/E>\",\n  \"loc_7127\": \"<one letter: A/B/C/D/E>\",\n  \"loc_160\": \"<one letter: A/B/C/D/E>\",\n  \"loc_5195\": \"<one letter: A/B/C/D/E>\",\n  \"loc_9595\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "00ca942880070b416ca44a8472ed6e0e10ea2efbe0cbcaa21be95841bc7de97d",
+    "source_row_sha256": "64d17e68e45f98d5cb137b2cbd7b1cbfe1cb534f6220560d81c660d0ffd651a2",
+    "video_body_sha256": "061a84721462e0cd09b4f17d430b164d42f24b12e43763e9ab7ac438ae7adba3"
+  },
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "input_sha256": "00ca942880070b416ca44a8472ed6e0e10ea2efbe0cbcaa21be95841bc7de97d",
+  "started_unix": 1795632172.7973728,
+  "runner_sha256": "45df373396bc21829d8cf44155c3a82c8d51df5e45218decb0b0e68fb843c9de",
+  "http_status": 200,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\n  \\\"loc_5837\\\": \\\"E\\\",\\n  \\\"loc_179\\\": \\\"A\\\",\\n  \\\"loc_5090\\\": \\\"D\\\",\\n  \\\"loc_6095\\\": \\\"D\\\",\\n  \\\"loc_7127\\\": \\\"C\\\",\\n  \\\"loc_160\\\": \\\"B\\\",\\n  \\\"loc_5195\\\": \\\"A\\\",\\n  \\\"loc_9595\\\": \\\"E\\\"\\n}\",\n            \"thoughtSignature\": \"AY89a199OKG36EBCbKMsQRi3EmcmKkZbxdwrnUt2ze9521Qgj96xtuP1COtwUHysYsjxifsK2eIpGioSKC2AUs2QI3NZgT++YERbE6aER42J7UjUYRu/1WS5b1VB2567toe3crJL/1y86afVW3aJpN1EDqi6vPYTiuSa0chl2nbV+DH8UutDAi4hSTKHI457GEwZrXRYACur20xyOCQfiU6LsZq7hi+c1NPlBYJOpwjG4a2KnPic/cQ6KNd4sXNBIGCyg1TJd2x+C0qaR5z9hScj7RXp0BGPDSnlZPprgesRQAYdtgvpNmzX4DChPYZiaDOLN/U0NqHwDjIL2RwCezNf1z3m7f1Cl47PuFJwDGAkFdH5ye9mw6wJXwlStS3M4onguvXHOsEyU+PixFevenJzl+YC462j6p8fCOl2Zu+RT49w1oCAABf+ko50CM/DgCvfM7JUeDTR2R0VV80YH6aUVP6hkIAKBPrIZBWoBZRGSPBH9ZC0ZZznjUtjwcJrCE6W5TDVXDDcQBXS5A51OFF2FD5iD4CU4OepLNO8oX3PU6EiJv2soLYXh5aWmjqZcPfBcc6WVkU8HrvGn59t1c5SKSHRGC8jLjewwhj2D9t9XBHAjTtvzHcFKyaPuf+ytm4zn0V7X6lPbPLpz411tNqx/oOeTZrr8RZowAcLOHHe12hhIws5hbnwa4/lVOio49ddPFPSxuE7YHPFX+8ob114gPQ+QRUQHoUi+VOTo8z8fMqtx63EJSGCBUGFoz7b5FYK5WenOaV1X79pnc1reP4gEFQvYDE28rYy5PuRlSLtfqxrTPnlHB3Vmd1i64eYMoouISnLLgpTlEQvvv38Ns+PPKURzBK/5oqTJxgckIzv6/9eabtXEn1cb6etHweh41xmBJl8l2wHTe0p3D5de0T9nsjYIxcum8aY9GmL00JM+/tBUSZ6A6wLXS/uCFn1hKscXGDXM9MR9wRoXqzC7jFZi0LQpxZaMYP6TNryWw+r+yCtyxmHORTlfCyZgtP4OmQMV8GKF9aiATQxkaJwZwrP43A28sAKcVLgRp+emY5cy9mALh/bua+9jtPRdWAH96EVnjNNuCIHUCzO9t5dQ6umj+zWFlPHA13BOFDzXe5bjVLZOcjpQekIv7ZgSztoHME2wS4m9QMs0a+dnS9HpaYd7UU3Xo748AhiqEJRn0u9CDLRTqIpv7tsdnzr6XtDAKd7K4DbokSXtC0x3ke9jmuk1DbRnQDqqhSE7jW9a2ee1HQhyjqEHWJkDFevWZacGsruIcIUyIefaJitY7X4kOoh7QpdmhlNKrI4hnk411k2XGUENfv/z4shnHmtytdd9kJOoczG/H44QWZIyghIwS+nc/xVNSQ8V7nXF9+a2vmySX8QWNmoqBLM56TPt2io0F9Ab2ImipwAh0dnV6vOKg7tTTEpCpX6TDLVOfAzTuR3XHllr+aMmVs7mpzRstwTN1yZwHjc9xwyoGiDur/KKbcsPinTfD159iSYvQ8XCx9k8N6mUPbP/xhyyw==\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 2255,\n    \"candidatesTokenCount\": 109,\n    \"totalTokenCount\": 2844,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 2255\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 109\n      }\n    ],\n    \"thoughtsTokenCount\": 480\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-25T18:42:52.898918Z\",\n  \"responseId\": \"LCwHa-buNuiootQPp_PygAI\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\n  \"loc_5837\": \"E\",\n  \"loc_179\": \"A\",\n  \"loc_5090\": \"D\",\n  \"loc_6095\": \"D\",\n  \"loc_7127\": \"C\",\n  \"loc_160\": \"B\",\n  \"loc_5195\": \"A\",\n  \"loc_9595\": \"E\"\n}",
+              "thoughtSignature": "AY89a199OKG36EBCbKMsQRi3EmcmKkZbxdwrnUt2ze9521Qgj96xtuP1COtwUHysYsjxifsK2eIpGioSKC2AUs2QI3NZgT++YERbE6aER42J7UjUYRu/1WS5b1VB2567toe3crJL/1y86afVW3aJpN1EDqi6vPYTiuSa0chl2nbV+DH8UutDAi4hSTKHI457GEwZrXRYACur20xyOCQfiU6LsZq7hi+c1NPlBYJOpwjG4a2KnPic/cQ6KNd4sXNBIGCyg1TJd2x+C0qaR5z9hScj7RXp0BGPDSnlZPprgesRQAYdtgvpNmzX4DChPYZiaDOLN/U0NqHwDjIL2RwCezNf1z3m7f1Cl47PuFJwDGAkFdH5ye9mw6wJXwlStS3M4onguvXHOsEyU+PixFevenJzl+YC462j6p8fCOl2Zu+RT49w1oCAABf+ko50CM/DgCvfM7JUeDTR2R0VV80YH6aUVP6hkIAKBPrIZBWoBZRGSPBH9ZC0ZZznjUtjwcJrCE6W5TDVXDDcQBXS5A51OFF2FD5iD4CU4OepLNO8oX3PU6EiJv2soLYXh5aWmjqZcPfBcc6WVkU8HrvGn59t1c5SKSHRGC8jLjewwhj2D9t9XBHAjTtvzHcFKyaPuf+ytm4zn0V7X6lPbPLpz411tNqx/oOeTZrr8RZowAcLOHHe12hhIws5hbnwa4/lVOio49ddPFPSxuE7YHPFX+8ob114gPQ+QRUQHoUi+VOTo8z8fMqtx63EJSGCBUGFoz7b5FYK5WenOaV1X79pnc1reP4gEFQvYDE28rYy5PuRlSLtfqxrTPnlHB3Vmd1i64eYMoouISnLLgpTlEQvvv38Ns+PPKURzBK/5oqTJxgckIzv6/9eabtXEn1cb6etHweh41xmBJl8l2wHTe0p3D5de0T9nsjYIxcum8aY9GmL00JM+/tBUSZ6A6wLXS/uCFn1hKscXGDXM9MR9wRoXqzC7jFZi0LQpxZaMYP6TNryWw+r+yCtyxmHORTlfCyZgtP4OmQMV8GKF9aiATQxkaJwZwrP43A28sAKcVLgRp+emY5cy9mALh/bua+9jtPRdWAH96EVnjNNuCIHUCzO9t5dQ6umj+zWFlPHA13BOFDzXe5bjVLZOcjpQekIv7ZgSztoHME2wS4m9QMs0a+dnS9HpaYd7UU3Xo748AhiqEJRn0u9CDLRTqIpv7tsdnzr6XtDAKd7K4DbokSXtC0x3ke9jmuk1DbRnQDqqhSE7jW9a2ee1HQhyjqEHWJkDFevWZacGsruIcIUyIefaJitY7X4kOoh7QpdmhlNKrI4hnk411k2XGUENfv/z4shnHmtytdd9kJOoczG/H44QWZIyghIwS+nc/xVNSQ8V7nXF9+a2vmySX8QWNmoqBLM56TPt2io0F9Ab2ImipwAh0dnV6vOKg7tTTEpCpX6TDLVOfAzTuR3XHllr+aMmVs7mpzRstwTN1yZwHjc9xwyoGiDur/KKbcsPinTfD159iSYvQ8XCx9k8N6mUPbP/xhyyw=="
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 2255,
+      "candidatesTokenCount": 109,
+      "totalTokenCount": 2844,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 2255
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 109
+        }
+      ],
+      "thoughtsTokenCount": 480
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-25T18:42:52.898918Z",
+    "responseId": "LCwHa-buNuiootQPp_PygAI"
+  },
+  "answer": "{\n  \"loc_5837\": \"E\",\n  \"loc_179\": \"A\",\n  \"loc_5090\": \"D\",\n  \"loc_6095\": \"D\",\n  \"loc_7127\": \"C\",\n  \"loc_160\": \"B\",\n  \"loc_5195\": \"A\",\n  \"loc_9595\": \"E\"\n}",
+  "predictions": {
+    "loc_5837": "E",
+    "loc_179": "A",
+    "loc_5090": "D",
+    "loc_6095": "D",
+    "loc_7127": "C",
+    "loc_160": "B",
+    "loc_5195": "A",
+    "loc_9595": "E"
+  },
+  "usage": {
+    "prompt_tokens": 2255,
+    "answer_tokens": 109,
+    "reasoning_tokens": 480,
+    "completion_including_reasoning": 589,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.0104,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "api_latency_s": 9.915669958107173,
+  "finished_unix": 1795632182.71366
+}

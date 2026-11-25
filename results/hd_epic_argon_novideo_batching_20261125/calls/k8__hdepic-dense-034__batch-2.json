@@ -1,0 +1,117 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-034::batch=2",
+    "report_id": "hdepic-dense-034",
+    "field_ids": [
+      "loc_1529",
+      "loc_7937",
+      "loc_91",
+      "loc_185",
+      "loc_3982",
+      "loc_1976",
+      "loc_3169",
+      "loc_6831"
+    ],
+    "batch_size": 8,
+    "model": "gemini-4-argon",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P03)\n\nAnswer all 8 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_1529]\nQuestion: When did the action <squeeze cloth> happen in this clip? (segment: 0:02:47.891 - 0:07:07.400 of this clip)\nOptions:\nA. this clip from 0:03:51.651 to 0:03:53.060\nB. this clip from 0:03:27.241 to 0:03:28.160\nC. this clip from 0:04:27.841 to 0:04:28.301\nD. this clip from 0:03:35.100 to 0:03:35.681\nE. this clip from 0:04:52.601 to 0:04:53.601\n\nQ2. [field_id: loc_7937]\nQuestion: When did the action <pick up knife> happen in this clip? (segment: 0:00:00.000 - 0:04:31.130 of this clip)\nOptions:\nA. this clip from 0:00:27.371 to 0:00:29.071\nB. this clip from 0:00:05.900 to 0:00:06.650\nC. this clip from 0:01:21.170 to 0:01:23.801\nD. this clip from 0:00:22.671 to 0:00:23.450\nE. this clip from 0:00:23.550 to 0:00:27.371\n\nQ3. [field_id: loc_91]\nQuestion: When did the action <pick up sink drain plug> happen in this clip? (segment: 0:00:00.000 - 0:04:31.130 of this clip)\nOptions:\nA. this clip from 0:03:56.320 to 0:03:57.260\nB. this clip from 0:04:09.540 to 0:04:10.021\nC. this clip from 0:04:18.121 to 0:04:19.000\nD. this clip from 0:04:08.951 to 0:04:09.481\nE. this clip from 0:03:53.540 to 0:03:54.151\n\nQ4. [field_id: loc_185]\nQuestion: When did the action <place recipe cards> happen in this clip? (segment: 0:05:38.820 - 0:08:07.769 of this clip)\nOptions:\nA. this clip from 0:06:27.150 to 0:06:27.890\nB. this clip from 0:08:06.081 to 0:08:07.769\nC. this clip from 0:05:47.111 to 0:05:51.520\nD. this clip from 0:07:17.650 to 0:07:18.380\nE. this clip from 0:07:32.150 to 0:07:32.960\n\nQ5. [field_id: loc_3982]\nQuestion: When did the action <move food waste bin> happen in this clip? (segment: 0:00:00.000 - 0:04:31.130 of this clip)\nOptions:\nA. this clip from 0:04:02.380 to 0:04:03.280\nB. this clip from 0:02:47.891 to 0:02:48.350\nC. this clip from 0:02:48.450 to 0:02:49.030\nD. this clip from 0:04:00.401 to 0:04:02.290\nE. this clip from 0:04:10.401 to 0:04:11.081\n\nQ6. [field_id: loc_1976]\nQuestion: When did the action <place recipe card> happen in this clip? (segment: 0:05:38.820 - 0:08:07.769 of this clip)\nOptions:\nA. this clip from 0:06:32.731 to 0:06:33.621\nB. this clip from 0:06:08.640 to 0:06:19.560\nC. this clip from 0:06:33.721 to 0:06:34.911\nD. this clip from 0:06:41.731 to 0:06:42.270\nE. this clip from 0:07:22.380 to 0:07:22.971\n\nQ7. [field_id: loc_3169]\nQuestion: When did the action <grab food waste bin> happen in this clip? (segment: 0:02:47.891 - 0:07:07.400 of this clip)\nOptions:\nA. this clip from 0:04:09.790 to 0:04:10.301\nB. this clip from 0:04:10.401 to 0:04:11.081\nC. this clip from 0:04:02.380 to 0:04:03.280\nD. this clip from 0:02:48.450 to 0:02:49.030\nE. this clip from 0:04:00.401 to 0:04:02.290\n\nQ8. [field_id: loc_6831]\nQuestion: When did the action <put down recipe sleeve> happen in this clip? (segment: 0:07:23.971 - 0:08:07.769 of this clip)\nOptions:\nA. this clip from 0:07:30.710 to 0:07:31.281\nB. this clip from 0:07:46.150 to 0:07:47.570\nC. this clip from 0:07:51.020 to 0:07:51.471\nD. this clip from 0:07:34.810 to 0:07:38.770\nE. this clip from 0:08:06.081 to 0:08:07.769\n\nReturn a JSON object with exactly these keys (loc_1529, loc_7937, loc_91, loc_185, loc_3982, loc_1976, loc_3169, loc_6831) and one option letter as each value:\n{\n  \"loc_1529\": \"<one letter: A/B/C/D/E>\",\n  \"loc_7937\": \"<one letter: A/B/C/D/E>\",\n  \"loc_91\": \"<one letter: A/B/C/D/E>\",\n  \"loc_185\": \"<one letter: A/B/C/D/E>\",\n  \"loc_3982\": \"<one letter: A/B/C/D/E>\",\n  \"loc_1976\": \"<one letter: A/B/C/D/E>\",\n  \"loc_3169\": \"<one letter: A/B/C/D/E>\",\n  \"loc_6831\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "97a3231e19539bb36ba6b105f91e6e337967c6157027375af381cb3b2f89ebc4",
+    "source_row_sha256": "8209fbc9a7ee85846a19a6e8f8aed6321ac54098f3f568d64c763ae4e5d07c96",
+    "video_body_sha256": "ee9bf0fa0e34d8ca08aec4801384c8f9d4b6b6dd6e163488fe69aa54415e3037"
+  },
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "input_sha256": "97a3231e19539bb36ba6b105f91e6e337967c6157027375af381cb3b2f89ebc4",
+  "started_unix": 1795632297.925656,
+  "runner_sha256": "45df373396bc21829d8cf44155c3a82c8d51df5e45218decb0b0e68fb843c9de",
+  "http_status": 200,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\n  \\\"loc_1529\\\": \\\"A\\\",\\n  \\\"loc_7937\\\": \\\"D\\\",\\n  \\\"loc_91\\\": \\\"D\\\",\\n  \\\"loc_185\\\": \\\"E\\\",\\n  \\\"loc_3982\\\": \\\"C\\\",\\n  \\\"loc_1976\\\": \\\"C\\\",\\n  \\\"loc_3169\\\": \\\"A\\\",\\n  \\\"loc_6831\\\": \\\"A\\\"\\n}\",\n            \"thoughtSignature\": \"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\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 2258,\n    \"candidatesTokenCount\": 108,\n    \"totalTokenCount\": 3549,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 2258\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 108\n      }\n    ],\n    \"thoughtsTokenCount\": 1183\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-25T18:44:57.981411Z\",\n  \"responseId\": \"qSwHa6PzO4urotQPvN6g-Qg\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\n  \"loc_1529\": \"A\",\n  \"loc_7937\": \"D\",\n  \"loc_91\": \"D\",\n  \"loc_185\": \"E\",\n  \"loc_3982\": \"C\",\n  \"loc_1976\": \"C\",\n  \"loc_3169\": \"A\",\n  \"loc_6831\": \"A\"\n}",
+              "thoughtSignature": "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"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 2258,
+      "candidatesTokenCount": 108,
+      "totalTokenCount": 3549,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 2258
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 108
+        }
+      ],
+      "thoughtsTokenCount": 1183
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-25T18:44:57.981411Z",
+    "responseId": "qSwHa6PzO4urotQPvN6g-Qg"
+  },
+  "answer": "{\n  \"loc_1529\": \"A\",\n  \"loc_7937\": \"D\",\n  \"loc_91\": \"D\",\n  \"loc_185\": \"E\",\n  \"loc_3982\": \"C\",\n  \"loc_1976\": \"C\",\n  \"loc_3169\": \"A\",\n  \"loc_6831\": \"A\"\n}",
+  "predictions": {
+    "loc_1529": "A",
+    "loc_7937": "D",
+    "loc_91": "D",
+    "loc_185": "E",
+    "loc_3982": "C",
+    "loc_1976": "C",
+    "loc_3169": "A",
+    "loc_6831": "A"
+  },
+  "usage": {
+    "prompt_tokens": 2258,
+    "answer_tokens": 108,
+    "reasoning_tokens": 1183,
+    "completion_including_reasoning": 1291,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.017426,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "api_latency_s": 18.12504683388397,
+  "finished_unix": 1795632316.051248
+}

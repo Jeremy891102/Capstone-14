@@ -1,0 +1,107 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-011::field=loc_2347",
+    "report_id": "hdepic-dense-011",
+    "field_ids": [
+      "loc_2347"
+    ],
+    "batch_size": 1,
+    "model": "gemini-4-argon",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P02)\n\nAnswer all 1 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_2347]\nQuestion: When did the action <transfer recipe book> happen in this clip? (segment: 0:03:57.540 - 0:05:45.280 of this clip)\nOptions:\nA. this clip from 0:05:43.310 to 0:05:43.831\nB. this clip from 0:05:41.441 to 0:05:42.181\nC. this clip from 0:04:17.661 to 0:04:18.010\nD. this clip from 0:04:15.691 to 0:04:16.290\nE. this clip from 0:04:18.641 to 0:04:18.960\n\nReturn a JSON object with exactly these keys (loc_2347) and one option letter as each value:\n{\n  \"loc_2347\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "ff6d881315ff3b7d25eb95b1296995a5461c9de62b7718ebc5018645f303e884",
+    "source_row_sha256": "41294d1b19a72f183b7fdd68bd675bf0879d65daab666c46b5bcd52fd609963d",
+    "video_body_sha256": "300486dd510d893df4aeb74b47444d316b28bf48d23f7432813c0b132b3bba09",
+    "field_id": "loc_2347",
+    "condition": "single"
+  },
+  "input_sha256": "ff6d881315ff3b7d25eb95b1296995a5461c9de62b7718ebc5018645f303e884",
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "started_unix": 1795624776.766599,
+  "runner_sha256": "d6c87ea626f964b688f8ee623209ffb8f00d8d003cabe6c7e6bf1a5cd17ab4dd",
+  "http_status": 200,
+  "api_latency_s": 3.5016217501834035,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\n  \\\"loc_2347\\\": \\\"A\\\"\\n}\",\n            \"thoughtSignature\": \"AY89a1/ACwtVtpcKl2A5KKON6VEOE4yfwyYi7nJxYbOjiCJCcPBslNPyqbq6bMv5DJgDZevZqxlhw7QO29JC6SB133RvBeO8mJrk8WxRR4UfFzPOshY6n51frQmQvSEqucBLQ8bHbwEOt32FFDwf9e/QJM8N6iGCt/QaytGp62GKLJemS7s9+D5rm16uo6piUXj3H1HPVjgbXhJGCujEaEZQHGCIU/AMRBpEWW5yxyDTUXpUUvQr3syHSrE9LGSYRR8TD/2XL4o3IcgOd7rJtZf2isd1lo8uklmISV4ioHe/6VqZ/ufF9b7TCv1kXZuz8KWAniMYgsoq9kvLfkd2K0Xskg5cFwO6EKeIMSmM10mEm8FFsj+G74gwLtc/t8/+dHGsIq4Bn741giTnP6uwAY4AV2aRBnXVG1vt/ZOmlHd62MKsSt4bnhi8wk8FqIalFcG+DIwV5K1nuir6Lp26p1Rwp1XBQxxiG9Cjaw8Qp+8OFfFDJls4CBwuDDwYa+N9OEqb554bMDLR4uab4eT2HqwdtUOL7gG+Ag8keHySbzCGiKGj9orN\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 485,\n    \"candidatesTokenCount\": 20,\n    \"totalTokenCount\": 620,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 485\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 20\n      }\n    ],\n    \"thoughtsTokenCount\": 115\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-25T16:39:36.837400Z\",\n  \"responseId\": \"SA8Ha5iOM-nrsbwPsdiviAI\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\n  \"loc_2347\": \"A\"\n}",
+              "thoughtSignature": "AY89a1/ACwtVtpcKl2A5KKON6VEOE4yfwyYi7nJxYbOjiCJCcPBslNPyqbq6bMv5DJgDZevZqxlhw7QO29JC6SB133RvBeO8mJrk8WxRR4UfFzPOshY6n51frQmQvSEqucBLQ8bHbwEOt32FFDwf9e/QJM8N6iGCt/QaytGp62GKLJemS7s9+D5rm16uo6piUXj3H1HPVjgbXhJGCujEaEZQHGCIU/AMRBpEWW5yxyDTUXpUUvQr3syHSrE9LGSYRR8TD/2XL4o3IcgOd7rJtZf2isd1lo8uklmISV4ioHe/6VqZ/ufF9b7TCv1kXZuz8KWAniMYgsoq9kvLfkd2K0Xskg5cFwO6EKeIMSmM10mEm8FFsj+G74gwLtc/t8/+dHGsIq4Bn741giTnP6uwAY4AV2aRBnXVG1vt/ZOmlHd62MKsSt4bnhi8wk8FqIalFcG+DIwV5K1nuir6Lp26p1Rwp1XBQxxiG9Cjaw8Qp+8OFfFDJls4CBwuDDwYa+N9OEqb554bMDLR4uab4eT2HqwdtUOL7gG+Ag8keHySbzCGiKGj9orN"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 485,
+      "candidatesTokenCount": 20,
+      "totalTokenCount": 620,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 485
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 20
+        }
+      ],
+      "thoughtsTokenCount": 115
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-25T16:39:36.837400Z",
+    "responseId": "SA8Ha5iOM-nrsbwPsdiviAI"
+  },
+  "response_model": "gemini-4-argon",
+  "answer": "{\n  \"loc_2347\": \"A\"\n}",
+  "prediction": "A",
+  "valid": true,
+  "usage": {
+    "prompt_tokens": 485,
+    "answer_tokens": 20,
+    "reasoning_tokens": 115,
+    "completion_including_reasoning": 135,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.00232,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "correct": true,
+  "target": "A",
+  "finished_unix": 1795624780.269013
+}

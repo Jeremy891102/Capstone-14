@@ -1,0 +1,109 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-051::batch=6",
+    "report_id": "hdepic-dense-051",
+    "field_ids": [
+      "loc_4363",
+      "loc_167",
+      "loc_5370",
+      "loc_418"
+    ],
+    "batch_size": 4,
+    "model": "gemini-4-argon",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P06)\n\nAnswer all 4 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_4363]\nQuestion: When did the action <clean bowl> happen in this clip? (segment: 0:00:00.000 - 0:09:29.060 of this clip)\nOptions:\nA. this clip from 0:03:05.100 to 0:03:13.710\nB. this clip from 0:04:36.460 to 0:04:42.920\nC. this clip from 0:04:13.801 to 0:04:14.681\nD. this clip from 0:04:07.971 to 0:04:08.741\nE. this clip from 0:02:38.531 to 0:02:40.040\n\nQ2. [field_id: loc_167]\nQuestion: When did the action <place spoon> happen in this clip? (segment: 0:00:00.000 - 0:09:29.060 of this clip)\nOptions:\nA. this clip from 0:03:25.701 to 0:03:27.141\nB. this clip from 0:00:50.270 to 0:00:54.150\nC. this clip from 0:04:54.531 to 0:04:55.571\nD. this clip from 0:04:45.361 to 0:04:47.310\nE. this clip from 0:04:44.381 to 0:04:45.281\n\nQ3. [field_id: loc_5370]\nQuestion: When did the action <place frying pan> happen in this clip? (segment: 0:00:00.000 - 0:09:29.060 of this clip)\nOptions:\nA. this clip from 0:03:17.120 to 0:03:18.020\nB. this clip from 0:07:38.000 to 0:07:40.781\nC. this clip from 0:07:40.881 to 0:08:06.391\nD. this clip from 0:08:35.290 to 0:08:37.560\nE. this clip from 0:08:16.861 to 0:08:23.790\n\nQ4. [field_id: loc_418]\nQuestion: When did the action <pick up spatula> happen in this clip? (segment: 0:00:00.000 - 0:09:29.060 of this clip)\nOptions:\nA. this clip from 0:07:30.511 to 0:07:31.290\nB. this clip from 0:08:46.491 to 0:08:47.571\nC. this clip from 0:07:31.391 to 0:07:37.181\nD. this clip from 0:08:39.051 to 0:08:46.391\nE. this clip from 0:06:55.701 to 0:06:58.411\n\nReturn a JSON object with exactly these keys (loc_4363, loc_167, loc_5370, loc_418) and one option letter as each value:\n{\n  \"loc_4363\": \"<one letter: A/B/C/D/E>\",\n  \"loc_167\": \"<one letter: A/B/C/D/E>\",\n  \"loc_5370\": \"<one letter: A/B/C/D/E>\",\n  \"loc_418\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "c8efb3867c195bc86fb6103f4cff0d9feb1c90e1ff0e77d79477acd2b359c808",
+    "source_row_sha256": "ad5753c1c7ca9a295a5aa5cc08fdae9ce7e9db0fdba9525992f7b0dcf1a8c827",
+    "video_body_sha256": "370b116df80663cb70e34fa0ab99641c402ba6055b032c31f515bf71325bfac9"
+  },
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "input_sha256": "c8efb3867c195bc86fb6103f4cff0d9feb1c90e1ff0e77d79477acd2b359c808",
+  "started_unix": 1795631943.1918411,
+  "runner_sha256": "45df373396bc21829d8cf44155c3a82c8d51df5e45218decb0b0e68fb843c9de",
+  "http_status": 200,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\n  \\\"loc_4363\\\": \\\"A\\\",\\n  \\\"loc_167\\\": \\\"E\\\",\\n  \\\"loc_5370\\\": \\\"D\\\",\\n  \\\"loc_418\\\": \\\"A\\\"\\n}\",\n            \"thoughtSignature\": \"AY89a1+csDJr2gPES18Wzw+YuDAYfswTBvhDx4Rm7HXdCN9ikYsSlGhNteVvFkZNoANabKNUApZXkDxKVxv3f4SnddwLizBhu0CftDsHHxHh//9FEZsxvpoO73sMgAvSEEGAfDnlLtdi4M+2fzRwCBD3IGj8HCQOSVWqqc/2L6cvujHQW+/NNxISuNl1QFb9UdXku4FHCLCdb/guAmXgXr/8AHdgcRVg97Fl2G+JJC0rtPXfElgWMqz/hRd/qKJMOUnVAKpL6xUINCUeW/lvCAoWOHR/usE2aXtP55AroRCiHfzTfrqMrXEo3HhW1rMmv1d76Ae22rkR40QQXj8HsKUEtzcqMgI/G71bReUlVJYe/VPMCLN5w0CUAyWzXeWeC0tYzDEpOYk77w/ILFrYp3SJ2YBVOXJN/Hdmgvqm3mb1JMWNArDdABRU9Af3v3/PSwY9nttPwxZR5WFmlrPWpb3c3RuF46r5LMPtpQgpAYFHIJPwRMvbZTUovWB3pVgYaK40+3OkfFBSQnbolHIS+RMNlCZ4FNbyvA6zGuffumFcl9/No6J9knwnhGPzpRD99C9YNrGQV+CH96veg/rZJv4L1dyAph58XqI9WhP6TZac9BUT4GESFp0ZkFuIlWmwVds7lDrMebefQ2rBzsLg2PLOoSOGHTS3GWP62Wk+0S+M9speRm4aLugFwHLWTiyDBojOWZIueAYlUOE9nsPJ6QhxUHL0jjUwQOXY35FJ1XOpmBcW3UlyciC58lla283hf9M5fymkwS6MvMm3KqR63l1hYdw+0u564/m2o6Zm2q7/x1isBNHyHskcX6gatz6A20OQocOdwj044kXikpm6fgASKv+NY0hgosMv7AiGGWeTYetUuYLivQ==\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 1239,\n    \"candidatesTokenCount\": 57,\n    \"totalTokenCount\": 1585,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 1239\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 57\n      }\n    ],\n    \"thoughtsTokenCount\": 289\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-25T18:39:03.289076Z\",\n  \"responseId\": \"RysHa7TSEZzgsbwPkrq3uAU\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\n  \"loc_4363\": \"A\",\n  \"loc_167\": \"E\",\n  \"loc_5370\": \"D\",\n  \"loc_418\": \"A\"\n}",
+              "thoughtSignature": "AY89a1+csDJr2gPES18Wzw+YuDAYfswTBvhDx4Rm7HXdCN9ikYsSlGhNteVvFkZNoANabKNUApZXkDxKVxv3f4SnddwLizBhu0CftDsHHxHh//9FEZsxvpoO73sMgAvSEEGAfDnlLtdi4M+2fzRwCBD3IGj8HCQOSVWqqc/2L6cvujHQW+/NNxISuNl1QFb9UdXku4FHCLCdb/guAmXgXr/8AHdgcRVg97Fl2G+JJC0rtPXfElgWMqz/hRd/qKJMOUnVAKpL6xUINCUeW/lvCAoWOHR/usE2aXtP55AroRCiHfzTfrqMrXEo3HhW1rMmv1d76Ae22rkR40QQXj8HsKUEtzcqMgI/G71bReUlVJYe/VPMCLN5w0CUAyWzXeWeC0tYzDEpOYk77w/ILFrYp3SJ2YBVOXJN/Hdmgvqm3mb1JMWNArDdABRU9Af3v3/PSwY9nttPwxZR5WFmlrPWpb3c3RuF46r5LMPtpQgpAYFHIJPwRMvbZTUovWB3pVgYaK40+3OkfFBSQnbolHIS+RMNlCZ4FNbyvA6zGuffumFcl9/No6J9knwnhGPzpRD99C9YNrGQV+CH96veg/rZJv4L1dyAph58XqI9WhP6TZac9BUT4GESFp0ZkFuIlWmwVds7lDrMebefQ2rBzsLg2PLOoSOGHTS3GWP62Wk+0S+M9speRm4aLugFwHLWTiyDBojOWZIueAYlUOE9nsPJ6QhxUHL0jjUwQOXY35FJ1XOpmBcW3UlyciC58lla283hf9M5fymkwS6MvMm3KqR63l1hYdw+0u564/m2o6Zm2q7/x1isBNHyHskcX6gatz6A20OQocOdwj044kXikpm6fgASKv+NY0hgosMv7AiGGWeTYetUuYLivQ=="
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 1239,
+      "candidatesTokenCount": 57,
+      "totalTokenCount": 1585,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 1239
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 57
+        }
+      ],
+      "thoughtsTokenCount": 289
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-25T18:39:03.289076Z",
+    "responseId": "RysHa7TSEZzgsbwPkrq3uAU"
+  },
+  "answer": "{\n  \"loc_4363\": \"A\",\n  \"loc_167\": \"E\",\n  \"loc_5370\": \"D\",\n  \"loc_418\": \"A\"\n}",
+  "predictions": {
+    "loc_4363": "A",
+    "loc_167": "E",
+    "loc_5370": "D",
+    "loc_418": "A"
+  },
+  "usage": {
+    "prompt_tokens": 1239,
+    "answer_tokens": 57,
+    "reasoning_tokens": 289,
+    "completion_including_reasoning": 346,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.005938,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "api_latency_s": 6.584351500030607,
+  "finished_unix": 1795631949.776798
+}

@@ -1,0 +1,108 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-022::batch=3",
+    "report_id": "hdepic-dense-022",
+    "field_ids": [
+      "loc_3509",
+      "loc_7299",
+      "loc_1411",
+      "loc_2270"
+    ],
+    "batch_size": 4,
+    "model": "gemini-4-argon",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P02)\n\nAnswer all 4 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_3509]\nQuestion: When did the action <place baguette> happen in this clip? (segment: 0:01:34.670 - 0:06:40.830 of this clip)\nOptions:\nA. this clip from 0:05:57.979 to 0:05:58.690\nB. this clip from 0:04:50.089 to 0:04:53.130\nC. this clip from 0:06:32.589 to 0:06:33.050\nD. this clip from 0:06:40.430 to 0:06:40.830\nE. this clip from 0:04:53.750 to 0:04:54.320\n\nQ2. [field_id: loc_7299]\nQuestion: When did the action <pick up top of pepper mill> happen in this clip? (segment: 0:00:00.000 - 0:04:07.010 of this clip)\nOptions:\nA. this clip from 0:03:42.539 to 0:03:43.050\nB. this clip from 0:03:43.149 to 0:03:43.989\nC. this clip from 0:02:35.760 to 0:02:36.270\nD. this clip from 0:03:35.000 to 0:03:36.399\nE. this clip from 0:00:03.750 to 0:00:04.850\n\nQ3. [field_id: loc_1411]\nQuestion: When did the action <tap egg> happen in this clip? (segment: 0:00:00.000 - 0:04:07.010 of this clip)\nOptions:\nA. this clip from 0:02:06.339 to 0:02:08.029\nB. this clip from 0:01:15.879 to 0:01:16.279\nC. this clip from 0:01:58.140 to 0:02:00.270\nD. this clip from 0:01:34.670 to 0:01:35.050\nE. this clip from 0:01:27.439 to 0:01:29.779\n\nQ4. [field_id: loc_2270]\nQuestion: When did the action <pick up baguette> happen in this clip? (segment: 0:01:34.670 - 0:06:40.830 of this clip)\nOptions:\nA. this clip from 0:05:03.560 to 0:05:08.440\nB. this clip from 0:04:44.239 to 0:04:44.500\nC. this clip from 0:06:32.589 to 0:06:33.050\nD. this clip from 0:04:58.849 to 0:05:02.580\nE. this clip from 0:04:50.089 to 0:04:53.130\n\nReturn a JSON object with exactly these keys (loc_3509, loc_7299, loc_1411, loc_2270) and one option letter as each value:\n{\n  \"loc_3509\": \"<one letter: A/B/C/D/E>\",\n  \"loc_7299\": \"<one letter: A/B/C/D/E>\",\n  \"loc_1411\": \"<one letter: A/B/C/D/E>\",\n  \"loc_2270\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "09c4647cd3bef16ee42b20314b430882c351ebcfd252ec9b689bd54cd7459f9b",
+    "source_row_sha256": "091a2ac6f77bcccc73d42fd6be5a2c72b69be8ba4689f9bd6ed0f9adad2ca9e1",
+    "video_body_sha256": "a5b51f36f23751d1a6f005b7713f1eca237b52fd7c7a8ff39d2b95e0db9d3cfb"
+  },
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "input_sha256": "09c4647cd3bef16ee42b20314b430882c351ebcfd252ec9b689bd54cd7459f9b",
+  "started_unix": 1795631621.628862,
+  "runner_sha256": "45df373396bc21829d8cf44155c3a82c8d51df5e45218decb0b0e68fb843c9de",
+  "http_status": 200,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\\"loc_3509\\\": \\\"E\\\", \\\"loc_7299\\\": \\\"D\\\", \\\"loc_1411\\\": \\\"D\\\", \\\"loc_2270\\\": \\\"C\\\"}\",\n            \"thoughtSignature\": \"AY89a18wYJtDWBmhKIJk+LSTtlk/SW04AmCnIy09lGLIAOPnc+LQ35U7DvazMVbocrD8GEarsAc308hkYk6U4yr0G4SlDaLI7c1BgK0xem/+rbVKdoOcMlDednd3agHbXTaA3be2cjHmnUxWIfuUU+dJycQitMK80JIG2i9kCeUQEG8=\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 1248,\n    \"candidatesTokenCount\": 48,\n    \"totalTokenCount\": 1296,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 1248\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 48\n      }\n    ]\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-25T18:33:41.781721Z\",\n  \"responseId\": \"BSoHa5nbL7WNl7oPmaHP0AI\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"loc_3509\": \"E\", \"loc_7299\": \"D\", \"loc_1411\": \"D\", \"loc_2270\": \"C\"}",
+              "thoughtSignature": "AY89a18wYJtDWBmhKIJk+LSTtlk/SW04AmCnIy09lGLIAOPnc+LQ35U7DvazMVbocrD8GEarsAc308hkYk6U4yr0G4SlDaLI7c1BgK0xem/+rbVKdoOcMlDednd3agHbXTaA3be2cjHmnUxWIfuUU+dJycQitMK80JIG2i9kCeUQEG8="
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 1248,
+      "candidatesTokenCount": 48,
+      "totalTokenCount": 1296,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 1248
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 48
+        }
+      ]
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-25T18:33:41.781721Z",
+    "responseId": "BSoHa5nbL7WNl7oPmaHP0AI"
+  },
+  "answer": "{\"loc_3509\": \"E\", \"loc_7299\": \"D\", \"loc_1411\": \"D\", \"loc_2270\": \"C\"}",
+  "predictions": {
+    "loc_3509": "E",
+    "loc_7299": "D",
+    "loc_1411": "D",
+    "loc_2270": "C"
+  },
+  "usage": {
+    "prompt_tokens": 1248,
+    "answer_tokens": 48,
+    "reasoning_tokens": 0,
+    "completion_including_reasoning": 48,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.002976,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "api_latency_s": 4.964679124765098,
+  "finished_unix": 1795631626.5938811
+}

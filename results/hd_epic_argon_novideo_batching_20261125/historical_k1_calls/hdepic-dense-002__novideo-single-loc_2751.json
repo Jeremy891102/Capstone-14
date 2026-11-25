@@ -1,0 +1,104 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-002::novideo-single=loc_2751",
+    "report_id": "hdepic-dense-002",
+    "field_id": "loc_2751",
+    "condition": "single",
+    "pilot": false,
+    "model": "gemini-4-argon",
+    "source_call_id": "hdepic-dense-002::field=loc_2751",
+    "source_row_sha256": "c69840e6c2ff16385c8ed0d0b58cbd839f1eb9ea60f76bcb7c01bfded82a9807",
+    "source_media_sha256": "a4fd286ab37756e63926a7c8726ab4675e78a10b0720e081196d388bbb554bb4",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P02)\n\nAnswer all 1 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_2751]\nQuestion: When did the action <place down large mixing bowl> happen in this clip? (segment: 0:00:22.840 - 0:03:14.330 of this clip)\nOptions:\nA. this clip from 0:01:51.490 to 0:01:52.370\nB. this clip from 0:01:49.090 to 0:01:49.740\nC. this clip from 0:01:30.060 to 0:01:30.710\nD. this clip from 0:02:23.659 to 0:02:24.400\nE. this clip from 0:02:00.409 to 0:02:01.159\n\nReturn a JSON object with exactly these keys (loc_2751) and one option letter as each value:\n{\n  \"loc_2751\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "fe4f690fbc38806a3134e6d2f155d4a57390011ce1399e93edc7a560b87b49d8"
+  },
+  "input_sha256": "fe4f690fbc38806a3134e6d2f155d4a57390011ce1399e93edc7a560b87b49d8",
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "started_unix": 1794507199.200573,
+  "runner_sha256": "d6c87ea626f964b688f8ee623209ffb8f00d8d003cabe6c7e6bf1a5cd17ab4dd",
+  "http_status": 200,
+  "api_latency_s": 10.377217916073278,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\\"loc_2751\\\":\\\"B\\\"}\",\n            \"thoughtSignature\": \"AY89a1/RTW1v1UNkP1E/OJz/xB8JaS97F6FUv6EeVF/+woLAY3tnWY68nAPCHTQKliRM1B5R4KbwdMiVYh3FluJ95PjR2LiCHqbDGCdy2X9Ia+WPGUhYe/xdLcebgzTG\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 487,\n    \"candidatesTokenCount\": 14,\n    \"totalTokenCount\": 501,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 487\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 14\n      }\n    ]\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-12T18:13:19.257037Z\",\n  \"responseId\": \"vwH2ao3YD6GmotQP-fe_qAM\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\"loc_2751\":\"B\"}",
+              "thoughtSignature": "AY89a1/RTW1v1UNkP1E/OJz/xB8JaS97F6FUv6EeVF/+woLAY3tnWY68nAPCHTQKliRM1B5R4KbwdMiVYh3FluJ95PjR2LiCHqbDGCdy2X9Ia+WPGUhYe/xdLcebgzTG"
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 487,
+      "candidatesTokenCount": 14,
+      "totalTokenCount": 501,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 487
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 14
+        }
+      ]
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-12T18:13:19.257037Z",
+    "responseId": "vwH2ao3YD6GmotQP-fe_qAM"
+  },
+  "response_model": "gemini-4-argon",
+  "answer": "{\"loc_2751\":\"B\"}",
+  "prediction": "B",
+  "valid": true,
+  "usage": {
+    "prompt_tokens": 487,
+    "answer_tokens": 14,
+    "reasoning_tokens": 0,
+    "completion_including_reasoning": 14,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.001114,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "correct": false,
+  "target": "D",
+  "finished_unix": 1794507209.5783958
+}

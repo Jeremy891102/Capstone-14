@@ -1,0 +1,105 @@
+{
+  "status": "succeeded",
+  "request": {
+    "call_id": "hdepic-dense-032::novideo-single=loc_7730",
+    "report_id": "hdepic-dense-032",
+    "field_id": "loc_7730",
+    "condition": "single",
+    "pilot": false,
+    "model": "gemini-4-argon",
+    "source_call_id": "hdepic-dense-032::field=loc_7730",
+    "source_row_sha256": "b389a0160d2abe73f9bba09f36b06f32c02816b28d301f82211e0030e422764b",
+    "source_media_sha256": "91c1ff74c8179dda19a7285b193ee0f138af25030d39348d56a6aedfdc094e1d",
+    "body": {
+      "systemInstruction": {
+        "parts": [
+          {
+            "text": "You answer questions about the provided video.\n\nBase your answers on the provided evidence.\nFollow the answer type and allowed values specified for each field.\n\nReturn exactly one valid JSON object using the requested field IDs as keys.\nDo not include markdown or additional keys.\n"
+          }
+        ]
+      },
+      "contents": [
+        {
+          "role": "user",
+          "parts": [
+            {
+              "text": "Video head_cam; this clip starts at 0 seconds."
+            },
+            {
+              "text": "Task context:\ntask_name: Kitchen cooking session (P06)\n\nAnswer all 1 questions below about the video. For each question choose exactly one option letter.\n\nQ1. [field_id: loc_7730]\nQuestion: When did the action <place milk frother> happen in this clip? (segment: 0:04:48.779 - 0:07:57.490 of this clip)\nOptions:\nA. this clip from 0:05:45.890 to 0:05:46.270\nB. this clip from 0:06:41.150 to 0:06:42.059\nC. this clip from 0:05:46.799 to 0:05:54.990\nD. this clip from 0:05:55.059 to 0:05:55.460\nE. this clip from 0:05:34.980 to 0:05:35.819\n\nReturn a JSON object with exactly these keys (loc_7730) and one option letter as each value:\n{\n  \"loc_7730\": \"<one letter: A/B/C/D/E>\"\n}\n"
+            }
+          ]
+        }
+      ],
+      "generationConfig": {
+        "maxOutputTokens": 32768,
+        "thinkingConfig": {
+          "thinkingLevel": "MEDIUM"
+        },
+        "responseMimeType": "application/json"
+      }
+    },
+    "body_sha256": "da9b31bc3ec4aa42439b05a9562008347aec71b960df478acbb0fba746593d23"
+  },
+  "input_sha256": "da9b31bc3ec4aa42439b05a9562008347aec71b960df478acbb0fba746593d23",
+  "wire_url": "https://aiplatform.googleapis.com/v1/projects/663601952811/locations/global/publishers/google/models/gemini-4-argon:generateContent",
+  "started_unix": 1794496467.762351,
+  "runner_sha256": "d6c87ea626f964b688f8ee623209ffb8f00d8d003cabe6c7e6bf1a5cd17ab4dd",
+  "http_status": 200,
+  "api_latency_s": 12.056771709118038,
+  "raw_response_text": "{\n  \"candidates\": [\n    {\n      \"content\": {\n        \"role\": \"model\",\n        \"parts\": [\n          {\n            \"text\": \"{\\n  \\\"loc_7730\\\": \\\"D\\\"\\n}\",\n            \"thoughtSignature\": \"AY89a1/qWx9G7ODiJftpTZG8DKG3I4pB9cSGXFA6fr0Tgt2XXyIf0OB5JOC6QGy/phf/6KWOSrQLhgv8bvGw9Pv7um6FnXjT5BJJiDSWDfVeRmUjlBOzofEITrmH/ItPMJMO4Oxzey8VO8XBtME491BCiOti8WThgBYbYwEgTicjw4g6B8EYZxB3Oo/6YmpCo+D4RhpLxkZHK3Bp0Fl+FcWdp3klyUsNEA8Gf/huFNoBm0+rPUvXWK2iii+4h5z9RZsZPGbWCDU9DVSgjpOf1LlD5nEm2dPydYp8aj8Ah3TfhveCT3krW3yFGB12pExaIIfZEX0nme3sx07AdSE4GRF/Yahqxnw2BCOInvBnI+sXn3YZ/4RuIMSpH5KuFH91WbQ+a/4c89R3QzEl7ZSOdKjTp7+KAOZ5hJioNjRe5i5H+oa5lFZvBkjswC/Wg2f1AWD8sU+CN0exIFWSYDiu86C/n6h0iL7zunfpw13j0oedPhsaUj+0iT3Pd08c0yTy4ynjezkNhsJqPmKV7R2GhTGcrN4ZgxfNIftyVRZ+Wm2HjdOdeeXaQ0eAmPEubqwe1smbNk+kJaayWr1WIaFR+4d4oLVNTZSli6VFqHBlXu1alKVLs2Ey9loum+nOCLJqaWhDxLqNBzIBpakcFHDZ+qzKxbvDIk/jbInP1ePxHymb01JQbLF7uQlLjCxEHfzOMctKDnC5UjpwmlyIbyu+Gu+2hyqRmr2Rj0yBgydfIT0h7FompruQ6Q0LYyaDjMHQgZnDy3rp2pDAK+4C+RTtUJVy3MEyYtY5NoS9LxM5Kp5ljEqTe0BePFC8Kym2I6RrLUTxDSq60BMfZ06ZHwy76t/vdZok46devAmXC6f1syCd2Ar21L56pwaXlorZKOrIvzRN6CwKmlNhxLPH/6jiX9DH6aoKtIi1SpsPtrFuULuPU/1nTe3v6vKTT/gmQlsPzfgUxHwC9o4CrktczY6ftB3DgbMBH/DV6lJ4TB/+OFHglYPiZkTO+/YXuu1Wlf2QBHEPsF1IJe8KrwzBRt5MNafwtfrWkz+ximGP/ShFw6it7V6n9R3nOhc2my+n7gKdjL213MjEcwrbYZMGJkpJ+yneDS8fF/bb1j7U+ZP6CUZGkuRrI+myvZ+3Dc/e1m7i+Z48Jh1KpdoY+ElDJ6MrAZy7RGjpiJ+77Gte/xjn472M4CKpX1a66b5HkNNDesMmC6fMpoqsAVO1Ngma39uE9oIsBpBblO93NATwGFQ59S11qK66HzDexc1611YOunZUwosStO5hFZTU5WCKTdq0bpctQucekeh21jLocyqsvTvW3OuE4jUpgYfkcSscCOp9v9nWsHxd1fcb4ZWSkt0/vLCRakoIPvXLcx11LgbiqhV28slbpHhQzvqVyIYYhU1mKfgWPYhWWn1bh6f1cNmjQGI9nJQ8okyqd9Ha09OeS28afGo05U90JPPl3EUubK1j67qMC/fnnvy5Wg6196C82BambeDX+hhpdj4BeiO1kZvZmpXT5H89Jd/rf3lFzaBS8pi3TpRKQY1BV+TbFi/g84D79Hv8qNjRI5Qcj3GPl/xvIpg7vQAqDNJUu8X1jieBEcwYgRTDKaZAx+CFuSR58IkFwl91xjdVaGxQft0qKOomILEQBg==\"\n          }\n        ]\n      },\n      \"finishReason\": \"STOP\"\n    }\n  ],\n  \"usageMetadata\": {\n    \"promptTokenCount\": 486,\n    \"candidatesTokenCount\": 20,\n    \"totalTokenCount\": 908,\n    \"trafficType\": \"ON_DEMAND\",\n    \"promptTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 486\n      }\n    ],\n    \"candidatesTokensDetails\": [\n      {\n        \"modality\": \"TEXT\",\n        \"tokenCount\": 20\n      }\n    ],\n    \"thoughtsTokenCount\": 402\n  },\n  \"modelVersion\": \"gemini-4-argon\",\n  \"createTime\": \"2026-11-12T15:14:27.813452Z\",\n  \"responseId\": \"09f1aozTMaCgotQP09H9wAU\"\n}\n",
+  "raw_response": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "{\n  \"loc_7730\": \"D\"\n}",
+              "thoughtSignature": "AY89a1/qWx9G7ODiJftpTZG8DKG3I4pB9cSGXFA6fr0Tgt2XXyIf0OB5JOC6QGy/phf/6KWOSrQLhgv8bvGw9Pv7um6FnXjT5BJJiDSWDfVeRmUjlBOzofEITrmH/ItPMJMO4Oxzey8VO8XBtME491BCiOti8WThgBYbYwEgTicjw4g6B8EYZxB3Oo/6YmpCo+D4RhpLxkZHK3Bp0Fl+FcWdp3klyUsNEA8Gf/huFNoBm0+rPUvXWK2iii+4h5z9RZsZPGbWCDU9DVSgjpOf1LlD5nEm2dPydYp8aj8Ah3TfhveCT3krW3yFGB12pExaIIfZEX0nme3sx07AdSE4GRF/Yahqxnw2BCOInvBnI+sXn3YZ/4RuIMSpH5KuFH91WbQ+a/4c89R3QzEl7ZSOdKjTp7+KAOZ5hJioNjRe5i5H+oa5lFZvBkjswC/Wg2f1AWD8sU+CN0exIFWSYDiu86C/n6h0iL7zunfpw13j0oedPhsaUj+0iT3Pd08c0yTy4ynjezkNhsJqPmKV7R2GhTGcrN4ZgxfNIftyVRZ+Wm2HjdOdeeXaQ0eAmPEubqwe1smbNk+kJaayWr1WIaFR+4d4oLVNTZSli6VFqHBlXu1alKVLs2Ey9loum+nOCLJqaWhDxLqNBzIBpakcFHDZ+qzKxbvDIk/jbInP1ePxHymb01JQbLF7uQlLjCxEHfzOMctKDnC5UjpwmlyIbyu+Gu+2hyqRmr2Rj0yBgydfIT0h7FompruQ6Q0LYyaDjMHQgZnDy3rp2pDAK+4C+RTtUJVy3MEyYtY5NoS9LxM5Kp5ljEqTe0BePFC8Kym2I6RrLUTxDSq60BMfZ06ZHwy76t/vdZok46devAmXC6f1syCd2Ar21L56pwaXlorZKOrIvzRN6CwKmlNhxLPH/6jiX9DH6aoKtIi1SpsPtrFuULuPU/1nTe3v6vKTT/gmQlsPzfgUxHwC9o4CrktczY6ftB3DgbMBH/DV6lJ4TB/+OFHglYPiZkTO+/YXuu1Wlf2QBHEPsF1IJe8KrwzBRt5MNafwtfrWkz+ximGP/ShFw6it7V6n9R3nOhc2my+n7gKdjL213MjEcwrbYZMGJkpJ+yneDS8fF/bb1j7U+ZP6CUZGkuRrI+myvZ+3Dc/e1m7i+Z48Jh1KpdoY+ElDJ6MrAZy7RGjpiJ+77Gte/xjn472M4CKpX1a66b5HkNNDesMmC6fMpoqsAVO1Ngma39uE9oIsBpBblO93NATwGFQ59S11qK66HzDexc1611YOunZUwosStO5hFZTU5WCKTdq0bpctQucekeh21jLocyqsvTvW3OuE4jUpgYfkcSscCOp9v9nWsHxd1fcb4ZWSkt0/vLCRakoIPvXLcx11LgbiqhV28slbpHhQzvqVyIYYhU1mKfgWPYhWWn1bh6f1cNmjQGI9nJQ8okyqd9Ha09OeS28afGo05U90JPPl3EUubK1j67qMC/fnnvy5Wg6196C82BambeDX+hhpdj4BeiO1kZvZmpXT5H89Jd/rf3lFzaBS8pi3TpRKQY1BV+TbFi/g84D79Hv8qNjRI5Qcj3GPl/xvIpg7vQAqDNJUu8X1jieBEcwYgRTDKaZAx+CFuSR58IkFwl91xjdVaGxQft0qKOomILEQBg=="
+            }
+          ]
+        },
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 486,
+      "candidatesTokenCount": 20,
+      "totalTokenCount": 908,
+      "trafficType": "ON_DEMAND",
+      "promptTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 486
+        }
+      ],
+      "candidatesTokensDetails": [
+        {
+          "modality": "TEXT",
+          "tokenCount": 20
+        }
+      ],
+      "thoughtsTokenCount": 402
+    },
+    "modelVersion": "gemini-4-argon",
+    "createTime": "2026-11-12T15:14:27.813452Z",
+    "responseId": "09f1aozTMaCgotQP09H9wAU"
+  },
+  "response_model": "gemini-4-argon",
+  "answer": "{\n  \"loc_7730\": \"D\"\n}",
+  "prediction": "D",
+  "valid": true,
+  "usage": {
+    "prompt_tokens": 486,
+    "answer_tokens": 20,
+    "reasoning_tokens": 402,
+    "completion_including_reasoning": 422,
+    "cached_prompt_tokens": 0,
+    "estimated_usd": 0.005192,
+    "cost_source": "Frozen historical estimate $2/M uncached input,$0.10/M cached input,$10/M output incl reasoning; NOT provider invoice/current-price verification"
+  },
+  "correct": true,
+  "target": "D",
+  "finished_unix": 1794496479.8199549
+}
